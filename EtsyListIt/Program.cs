@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
 using EtsyListIt.Utility.DomainObjects;
@@ -16,6 +15,7 @@ namespace EtsyListIt
         private static Container _container;
         private static ISettingsUtility _settingsUtility;
         private static EtsyListItArgs _listItArgs;
+        private static IListingWrapper _listingWrapper;
 
         static void Main(string[] args)
         {
@@ -26,6 +26,7 @@ namespace EtsyListIt
                 _container = ConfigureStructureMap();
                 _settingsUtility = _container.GetInstance<ISettingsUtility>();
                 var commandLineUtility = _container.GetInstance<ICommandLineUtility>();
+                _listingWrapper = _container.GetInstance<IListingWrapper>();
 
                 #endregion
 
@@ -40,7 +41,8 @@ namespace EtsyListIt
                         "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
                 }
 
-                var listing = PopulateListing();
+                var listing = PopulateGraphicListing(_listItArgs.WorkingDirectory + @"\thWatermark.jpg", _listItArgs.WorkingDirectory + @"\th.zip");
+                listing = _listingWrapper.CreateDigitalListingWithImage(listing)
             }
             catch (Exception ex)
             {
@@ -50,44 +52,53 @@ namespace EtsyListIt
             }
         }
 
-        private static Listing PopulateListing()
+        private static DigitalListingWithImages PopulateGraphicListing(string watermarkPath, string digitalFilePath)
         {
             if (_listItArgs.ListingCustomTitle.IsNullOrEmpty())
             {
-                throw new EtsyListItException("User must provide custom title for listing.  Use command line arg -ct to specify.");
+                throw new EtsyListItException(
+                    "User must provide custom title for listing.  Use command line arg -ct to specify.");
             }
-            Listing listing = new Listing
+            var listing = new DigitalListingWithImages
             {
                 Title = $"{_listItArgs.ListingCustomTitle} {_listItArgs.ListingDefaultTitle}",
-                Description = $"{_listItArgs.ListingCustomTitle} \r\n {_listItArgs.ListingDefaultDescription}",
-                Quantity = _listItArgs.ListingDefaultQuantity,
-            };
-            listing.Price = decimal.TryParse(args[1], out decimal price) ? price : throw new InvalidDataException("Price must be a decimal value.");
-            listing.IsSupply = true;
-            listing.CategoryId = 69150433;
-            listing.WhenMade = "2010_2017";
-            listing.WhoMade = "i_did";
-            listing.IsCustomizable = bool.TryParse(args[2], out bool isCustomizable) && isCustomizable;
-            listing.IsDigital = true;
-            listing.ShippingTemplateId = 30116314577;
-            listing.Images = new[] { new ListingImage
+                Description = $"{_listItArgs.ListingCustomTitle}\r\n{_listItArgs.ListingDefaultDescription}",
+                Quantity = int.TryParse(_listItArgs.ListingQuantity, out int quantity)
+                    ? quantity
+                    : throw new InvalidDataException("Quantity must be a whole number."),
+                Price = decimal.TryParse(_listItArgs.ListingPrice, out decimal price)
+                    ? price
+                    : throw new InvalidDataException("Price must be a decimal value."),
+                IsSupply = true,
+                CategoryID = "69150433",
+                WhenMade = "2010_2017",
+                WhoMade = "i_did",
+                IsCustomizable = true,
+                IsDigital = true,
+                ShippingTemplateID = "30116314577",
+                Images = new[]
                 {
-                    ImagePath = GetWatermarkedImagePath(workingDirectory),
-                    Overwrite = true,
-                    IsWatermarked = true,
-                    Rank = 1}
-            };
-            listing.Tags = ParseTags(args);
-
-            var zip = CreateZipFile(workingDirectory);
-            listing.DigitalFiles = new[] { new DigitalFile()
+                    new ListingImage
+                    {
+                        ImagePath = File.Exists(watermarkPath) ? watermarkPath : throw new InvalidDataException("Watermark path is invalid."),
+                        Overwrite = true,
+                        IsWatermarked = true,
+                        Rank = 1
+                    }
+                },
+                DigitalFiles = new[]
                 {
-                    Path = zip,
-                    Name = Path.GetFileName(zip),
-                    Rank = 1}
+                    new DigitalFile
+                    {
+                        Path = File.Exists(digitalFilePath) ? digitalFilePath: throw new InvalidDataException("Digital file path is invalid."),
+                        Name = Path.GetFileName(digitalFilePath),
+                        Rank = 1
+                    }
+                },
+                Tags = _listItArgs.ListingTags.Split(',')
             };
 
-            var etsyListing = _etsyService.CreateListing(listing);
+            return listing;
         }
 
         private static Container ConfigureStructureMap()
@@ -122,7 +133,7 @@ namespace EtsyListIt
                 Process.Start(tempCredentials.LoginURL);
                 while (validator.IsNullOrEmpty())
                 {
-                    Console.Write("Enter your Etsy validator from the web browser to contine:");
+                    Console.Write("Enter your Etsy validator from the web browser to continue: ");
                     validator = Console.ReadLine();
                 }
 

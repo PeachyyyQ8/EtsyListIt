@@ -8,10 +8,10 @@ namespace EtsyWrapper.Interfaces
 
         Listing CreateListingWithImage(ListingWithImage listing);
 
-        Listing CreateDigitalListingWithImage(DigitalListingWithImage digitalListingWithImage);
+        DigitalListingWithImages CreateDigitalListingWithImage(DigitalListingWithImages digitalListingWithImages);
 
         Listing AddImage(ListingWithImage listing);
 
-        Listing AddDigitalFile(DigitalListingWithImage digitalListingWithImage);
+        Listing AddDigitalFile(DigitalListingWithImages digitalListingWithImages);
     }
 }

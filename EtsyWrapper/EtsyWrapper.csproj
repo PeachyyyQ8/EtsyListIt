@@ -48,8 +48,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DomainObjects\DigitalFile.cs" />
+    <Compile Include="DomainObjects\ListingImage.cs" />
     <Compile Include="EtsyAuthenticationWrapper.cs" />
-    <Compile Include="DomainObjects\DigitalListingWithImage.cs" />
+    <Compile Include="DomainObjects\DigitalListingWithImages.cs" />
     <Compile Include="DomainObjects\ListingWithImage.cs" />
     <Compile Include="DomainObjects\PermanentToken.cs" />
     <Compile Include="Interfaces\IEtsyAuthenticationWrapper.cs" />

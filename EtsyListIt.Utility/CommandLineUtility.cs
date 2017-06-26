@@ -53,7 +53,25 @@ namespace EtsyListIt.Utility
                     "dd|Default Description=",
                     "Sets or changes the default description for the listing.",
                     v => _commandLineArgs.ListingDefaultDescription = v
+                },
+                {
+                    "lq|Listing Quantity=",
+                    "Sets or changes the quantity for the listing.",
+                    v => _commandLineArgs.ListingQuantity = v
+                },
+                {
+                    "lp|Listing Price=",
+                    "Sets the price for the listing.",
+                    v => _commandLineArgs.ListingPrice = v
+                },
+                {
+                    "tags|Listing ListingTags=" +
+                    "",
+                    "Sets the price for the listing.",
+                    v => _commandLineArgs.ListingTags = v
                 }
+
+
 
 
             };
@@ -71,8 +89,10 @@ namespace EtsyListIt.Utility
                 _commandLineArgs.ListingDefaultDescription =
                     GetValueAndStore("ListingDefaultDescription", _commandLineArgs.ListingDefaultDescription, "-dd");
                 _commandLineArgs.ListingCustomTitle = GetValue("ListingCustomTitle", _commandLineArgs.ListingCustomTitle, "-ct");
-                _commandLineArgs.ListingDefaultQuantity = GetValueAndStore("ListingDefaultQuantity",
-                    _commandLineArgs.ListingDefaultQuantity, "-dq");
+                _commandLineArgs.ListingQuantity = GetValueAndStore("ListingQuantity",
+                    _commandLineArgs.ListingQuantity, "-lq");
+                _commandLineArgs.ListingPrice = GetValue("Listing Price", _commandLineArgs.ListingPrice, "-lp");
+                _commandLineArgs.ListingTags = GetValue("Tags", _commandLineArgs.ListingTags, "-tags");
             }
             catch (OptionException e)
             {
@@ -100,7 +120,7 @@ namespace EtsyListIt.Utility
                 if (value.IsNullOrEmpty())
                 {
                     throw new EtsyListItException(
-                        $"User must specify {key.SplitAtCapitalLetter().ToLower()}!  Use command line argument {argName} value to specify.");
+                        $"User must specify {key}!  Use command line argument {argName} value to specify.");
                 }
             }
             else

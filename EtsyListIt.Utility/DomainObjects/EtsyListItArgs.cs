@@ -10,6 +10,8 @@
         public string ListingCustomTitle { get; set; }
         public string ListingDefaultTitle { get; set; }
         public string ListingDefaultDescription { get; set; }
-        public string ListingDefaultQuantity { get; set; }
+        public string ListingQuantity { get; set; }
+        public string ListingPrice { get; set; }
+        public string ListingTags { get; set; }
     }
 }

@@ -15,7 +15,7 @@ namespace EtsyWrapper
             throw new System.NotImplementedException();
         }
 
-        public Listing CreateDigitalListingWithImage(DigitalListingWithImage digitalListingWithImage)
+        public DigitalListingWithImages CreateDigitalListingWithImage(DigitalListingWithImages digitalListingWithImages)
         {
             throw new System.NotImplementedException();
         }
@@ -25,7 +25,7 @@ namespace EtsyWrapper
             throw new System.NotImplementedException();
         }
 
-        public Listing AddDigitalFile(DigitalListingWithImage digitalListingWithImage)
+        public Listing AddDigitalFile(DigitalListingWithImages digitalListingWithImages)
         {
             throw new System.NotImplementedException();
         }
