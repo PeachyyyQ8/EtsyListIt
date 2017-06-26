@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Specialized;
+using System.Text.RegularExpressions;
 
 namespace EtsyListIt.Utility.Extensions
 {
@@ -46,7 +48,7 @@ namespace EtsyListIt.Utility.Extensions
 //{
 //    if (_token != null)
 //    {
-//        if (!_token.ApiKey.IsNullOrEmpty() && !_token.SharedSecret.IsNullOrEmpty() &&
+//        if (!_token.APIKey.IsNullOrEmpty() && !_token.SharedSecret.IsNullOrEmpty() &&
 //            !_token.Key.IsNullOrEmpty() && !_token.AuthTokenSecret.IsNullOrEmpty())
 //        {
 //            return true;

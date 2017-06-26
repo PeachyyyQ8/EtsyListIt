@@ -8,7 +8,7 @@ namespace EtsyListIt.Utility.Interfaces
 {
     public interface ISettingsUtility
     {
-        object GetAppSetting(string outputdirectory);
+        string GetAppSetting(string settingKey);
         void SetAppSetting(string key, string workingDirectory);
     }
 }

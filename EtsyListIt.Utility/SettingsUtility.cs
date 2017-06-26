@@ -5,7 +5,7 @@ namespace EtsyListIt.Utility
 {
     public class SettingsUtility : ISettingsUtility
     {
-        public object GetAppSetting(string key)
+        public string GetAppSetting(string key)
         {
             return ConfigurationManager.AppSettings[key];
         }

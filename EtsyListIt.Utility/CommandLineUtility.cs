@@ -8,10 +8,12 @@ namespace EtsyListIt.Utility
     public class CommandLineUtility : ICommandLineUtility
     {
         private readonly ISettingsUtility _settingsHelper;
+        private readonly IProtectedDataUtility _protectedDataUtility;
 
-        public CommandLineUtility(ISettingsUtility settingsHelper)
+        public CommandLineUtility(ISettingsUtility settingsHelper, IProtectedDataUtility protectedDataUtility)
         {
             _settingsHelper = settingsHelper;
+            _protectedDataUtility = protectedDataUtility;
         }
         public EtsyListItArgs ParseCommandLineArguments(string[] args)
         {
@@ -32,35 +34,35 @@ namespace EtsyListIt.Utility
                 p.Parse(args);
                 if (commandLineArgs.WorkingDirectory.IsNullOrEmpty())
                 {
-                    var workingDirectory = _settingsHelper.GetAppSetting("workingDirectory").ToString();
+                    var workingDirectory = _settingsHelper.GetAppSetting("workingDirectory");
                     if (workingDirectory.IsNullOrEmpty())
                     {
                         throw new EtsyListItException("User must specify working directory!  Use -wd {directory} to specify.");
                     }
 
-                    _settingsHelper.SetAppSetting("workingDirectory", workingDirectory);
+                    _settingsHelper.SetAppSetting("workingDirectory", _protectedDataUtility.EncryptString(workingDirectory.ToSecureString())));
                 }
 
                 if (commandLineArgs.OutputDirectory.IsNullOrEmpty())
                 {
-                    var outputDirectory = _settingsHelper.GetAppSetting("outputDirectory").ToString();
+                    var outputDirectory = _settingsHelper.GetAppSetting("outputDirectory");
                     if (outputDirectory.IsNullOrEmpty())
                     {
                         throw new EtsyListItException("User must specify output directory!  Use -od {directory} to specify.");
                     }
 
-                    _settingsHelper.SetAppSetting("outputDirectory", outputDirectory);
+                    _settingsHelper.SetAppSetting("outputDirectory", _protectedDataUtility.EncryptString(outputDirectory.ToSecureString()));
                 }
 
                 if (commandLineArgs.WatermarkFile.IsNullOrEmpty())
                 {
-                    var watermarkFile = _settingsHelper.GetAppSetting("watermarkFile").ToString();
+                    var watermarkFile = _settingsHelper.GetAppSetting("watermarkFile");
                     if (watermarkFile.IsNullOrEmpty())
                     {
                         throw new EtsyListItException("User must specify watermark file!  Use -wm {filePath} to specify.");
                     }
 
-                    _settingsHelper.SetAppSetting("watermarkFile", watermarkFile);
+                    _settingsHelper.SetAppSetting("watermarkFile", _protectedDataUtility.EncryptString(watermarkFile.ToSecureString()));
                 }
             }
             catch (OptionException e)

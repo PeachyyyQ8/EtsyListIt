@@ -36,6 +36,7 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -48,9 +49,12 @@
     <Compile Include="CommandLineUtility.cs" />
     <Compile Include="DomainObjects\EtsyListItArgs.cs" />
     <Compile Include="DomainObjects\EtsyListItException.cs" />
+    <Compile Include="Extensions\ProtectedDataExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Interfaces\ICommandLineUtility.cs" />
+    <Compile Include="Interfaces\IProtectedDataUtility.cs" />
     <Compile Include="Interfaces\ISettingsUtility.cs" />
+    <Compile Include="ProtectedDataUtility.cs" />
     <Compile Include="SettingsUtility.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="DomainObjects\StringValueEnum.cs" />

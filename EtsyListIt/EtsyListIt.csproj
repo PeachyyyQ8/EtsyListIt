@@ -53,6 +53,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\EtsyListIt.Utility\EtsyListIt.Utility.csproj">
+      <Project>{6DC3F3BA-23C4-4CD6-80F3-F7C3EB76188C}</Project>
+      <Name>EtsyListIt.Utility</Name>
+    </ProjectReference>
     <ProjectReference Include="..\EtsyWrapper\EtsyWrapper.csproj">
       <Project>{063CC052-9676-41CA-8A80-2A3F71BE645B}</Project>
       <Name>EtsyWrapper</Name>

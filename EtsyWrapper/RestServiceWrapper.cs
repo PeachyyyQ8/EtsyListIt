@@ -6,9 +6,15 @@ namespace EtsyWrapper
 {
     public class RestServiceWrapper : IRestServiceWrapper
     {
+        private string _baseUrl;
+
+        public RestServiceWrapper()
+        {
+            _baseUrl = "https://openapi.etsy.com/v2/";
+        }
         public RestClient GetRestClient()
         {
-            return new RestClient("");
+            return new RestClient(_baseUrl);
         }
 
         public IAuthenticator GetAuthenticator(string apiKey, string sharedSecret)
