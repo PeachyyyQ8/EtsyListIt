@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using EtsyWrapper.DomainObjects;
 using EtsyWrapper.Interfaces;
-using Newtonsoft.Json;
 using RestSharp;
 
 namespace EtsyWrapper
@@ -13,7 +12,7 @@ namespace EtsyWrapper
     public class EtsyAuthenticationWrapper : IEtsyAuthenticationWrapper
     {
         private readonly IRestServiceWrapper _restServiceWrapper;
-        private RestClient _restClient;
+        private readonly RestClient _restClient;
 
         public EtsyAuthenticationWrapper(IRestServiceWrapper restServiceWrapper)
         {
@@ -24,7 +23,7 @@ namespace EtsyWrapper
 
         public TemporaryToken GetTemporaryCredentials(string apiKey, string sharedSecret, string[] permissions)
         {
-            _restClient.Authenticator = _restServiceWrapper.GetAuthenticator(apiKey, sharedSecret);
+            _restClient.Authenticator = _restServiceWrapper.GetAuthenticatorForRequestToken(apiKey, sharedSecret);
 
             RestRequest restRequest = _restServiceWrapper.GetRestRequest("oauth/request_token", Method.POST);
 
@@ -36,20 +35,45 @@ namespace EtsyWrapper
             {
                 return null;
             }
-            return ParseTemporaryToken(response.Content);
+            var args = ParseQueryString(response.Content);
+
+            return new TemporaryToken
+            {
+                LoginURL = Uri.UnescapeDataString(args.First(x => x.Key == "login_url").Value),
+                OAuthToken = args.First(x => x.Key == "oauth_token").Value,
+                OAuthTokenSecret = args.First(x => x.Key == "oauth_token_secret").Value
+            };
         }
         
-        public PermanentToken GetPermanentTokenCredentials(string apiKey, string sharedSecret, string validator, string[] permissions)
+        public PermanentToken GetPermanentTokenCredentials(string apiKey, string sharedSecret, TemporaryToken tempToken, string validator)
         {
-            throw new System.NotImplementedException();
-        }
+            //consumerKey is the appKey you got when you registered your app, same for sharedSecret
+            _restClient.Authenticator = _restServiceWrapper.GetAuthenticatorForAccessToken(apiKey, sharedSecret, tempToken, validator);
 
-        public void SetAuthenticationToken(string apiKey, string sharedSecret, string[] permissions)
-        {
-            throw new System.NotImplementedException();
-        }
+            RestRequest restRequest = _restServiceWrapper.GetRestRequest("oauth/access_token", Method.GET);
 
-        public static TemporaryToken ParseTemporaryToken(string queryString)
+            IRestResponse irestResponse = _restClient.Execute(restRequest);
+
+            var args = ParseQueryString(irestResponse.Content);
+
+            var permanentToken = new PermanentToken
+            {
+                APIKey = apiKey,
+                SharedSecret = sharedSecret,
+                TokenID = args.First(x => x.Key == "oauth_token").Value,
+                TokenSecret = args.First(x => x.Key == "oauth_token_secret").Value
+            };
+
+            
+            if (string.IsNullOrEmpty(permanentToken.TokenID) || string.IsNullOrEmpty(permanentToken.TokenSecret))
+            {
+                throw new NullReferenceException("Unable to retrieve permanent auth token.  Please check your credentials and try again.");
+            }
+
+            return permanentToken;
+        }
+        
+        public static List<KeyValuePair<string, string>> ParseQueryString(string queryString)
         {
             var args = new List<KeyValuePair<string, string>>();
             
@@ -59,27 +83,15 @@ namespace EtsyWrapper
                 queryString = queryString.Substring(queryString.IndexOf('?') + 1);
             }
 
-            foreach (string arg in Regex.Split(queryString, "&"))
+            foreach (var arg in Regex.Split(queryString, "&"))
             {
-                string[] singleArg = Regex.Split(arg, "=");
-                if (singleArg.Length == 2)
-                {
-                    args.Add(new KeyValuePair<string, string>(singleArg[0], singleArg[1]));
-                }
-                else
-                {
-                    // only one key with no value specified in query string
-                    args.Add(new KeyValuePair<string, string>(singleArg[0], string.Empty));
-                }
-
+                var singleArg = Regex.Split(arg, "=");
+                args.Add(singleArg.Length == 2
+                    ? new KeyValuePair<string, string>(singleArg[0], singleArg[1])
+                    : new KeyValuePair<string, string>(singleArg[0], string.Empty));
             }
 
-            return new TemporaryToken
-            {
-                LoginURL = args.First(x => x.Key == "login_url").Value,
-                OAuthToken = args.First(x => x.Key == "oauth_token").Value,
-                OAuthTokenSecret = args.First(x => x.Key == "oauth_token_secret").Value
-            };
+            return args;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace EtsyListIt.Utility.Extensions
@@ -39,6 +40,8 @@ namespace EtsyListIt.Utility.Extensions
         {
             return string.Format(value, objects);
         }
+
+        
     }
 }
 

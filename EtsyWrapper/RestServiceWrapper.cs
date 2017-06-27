@@ -1,4 +1,5 @@
-﻿using EtsyWrapper.Interfaces;
+﻿using EtsyWrapper.DomainObjects;
+using EtsyWrapper.Interfaces;
 using RestSharp;
 using RestSharp.Authenticators;
 
@@ -17,7 +18,7 @@ namespace EtsyWrapper
             return new RestClient(_baseUrl);
         }
 
-        public IAuthenticator GetAuthenticator(string apiKey, string sharedSecret)
+        public IAuthenticator GetAuthenticatorForRequestToken(string apiKey, string sharedSecret)
         {
             return OAuth1Authenticator.ForRequestToken(apiKey, sharedSecret, "oob");
         }
@@ -25,6 +26,11 @@ namespace EtsyWrapper
         public RestRequest GetRestRequest(string request, Method method)
         {
             return new RestRequest(request, method);
+        }
+
+        public IAuthenticator GetAuthenticatorForAccessToken(string apiKey, string sharedSecret, TemporaryToken tempToken, string verifier)
+        {
+            return OAuth1Authenticator.ForAccessToken(apiKey, sharedSecret, tempToken.OAuthToken, tempToken.OAuthTokenSecret, verifier);
         }
         
     }

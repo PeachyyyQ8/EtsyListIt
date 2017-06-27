@@ -8,62 +8,97 @@ namespace EtsyListIt.Utility
     public class CommandLineUtility : ICommandLineUtility
     {
         private readonly ISettingsUtility _settingsHelper;
-        private readonly IProtectedDataUtility _protectedDataUtility;
 
-        public CommandLineUtility(ISettingsUtility settingsHelper, IProtectedDataUtility protectedDataUtility)
+        public CommandLineUtility(ISettingsUtility settingsHelper)
         {
             _settingsHelper = settingsHelper;
-            _protectedDataUtility = protectedDataUtility;
         }
         public EtsyListItArgs ParseCommandLineArguments(string[] args)
         {
 
             var commandLineArgs = new EtsyListItArgs();
-            var p = new OptionSet() {
-                { "wd|Working Directory=", "Sets or changes the directory of the base file.",
-                    v => commandLineArgs.WorkingDirectory = v },
-                { "od|Output Directory=",
+            var p = new OptionSet()
+            {
+                {
+                    "wd|Working Directory=", "Sets or changes the directory of the base file",
+                    v => commandLineArgs.WorkingDirectory = v
+                },
+                {
+                    "od|Output Directory=",
                     "Sets or changes the directory of the output files",
-                    v => commandLineArgs.OutputDirectory = v},
-                { "wm|Watermark File=",
-                    "Sets or changes the path of the watermark files",
-                    v => commandLineArgs.WatermarkFile = v}
+                    v => commandLineArgs.OutputDirectory = v
+                },
+                {
+                    "a|APIKey=",
+                    "Sets or changes the API key for the application",
+                    v => commandLineArgs.APIKey = v
+                },
+                {
+                    "ss|Shared Secret=",
+                    "Sets or changes the shared secret for the application",
+                    v => commandLineArgs.SharedSecret = v
+                }
             };
             try
             {
                 p.Parse(args);
+                #region Working Directory
                 if (commandLineArgs.WorkingDirectory.IsNullOrEmpty())
                 {
-                    var workingDirectory = _settingsHelper.GetAppSetting("workingDirectory");
-                    if (workingDirectory.IsNullOrEmpty())
+                    commandLineArgs.WorkingDirectory = _settingsHelper.GetAppSetting("WorkingDirectory");
+                    if (commandLineArgs.WorkingDirectory.IsNullOrEmpty())
                     {
-                        throw new EtsyListItException("User must specify working directory!  Use -wd {directory} to specify.");
+                        throw new EtsyListItException("User must specify working directory!  Use command line argument -wd {directory} to specify.");
                     }
-
-                    _settingsHelper.SetAppSetting("workingDirectory", _protectedDataUtility.EncryptString(workingDirectory.ToSecureString())));
                 }
-
+                else
+                {
+                    _settingsHelper.SetAppSetting("WorkingDirectory", commandLineArgs.WorkingDirectory);
+                }
+                #endregion
+                #region Output Directory
                 if (commandLineArgs.OutputDirectory.IsNullOrEmpty())
                 {
-                    var outputDirectory = _settingsHelper.GetAppSetting("outputDirectory");
-                    if (outputDirectory.IsNullOrEmpty())
+                    commandLineArgs.OutputDirectory = _settingsHelper.GetAppSetting("OutputDirectory");
+                    if (commandLineArgs.OutputDirectory.IsNullOrEmpty())
                     {
-                        throw new EtsyListItException("User must specify output directory!  Use -od {directory} to specify.");
+                        throw new EtsyListItException("User must specify output directory!  Use command line argument -od {directory} to specify.");
                     }
-
-                    _settingsHelper.SetAppSetting("outputDirectory", _protectedDataUtility.EncryptString(outputDirectory.ToSecureString()));
                 }
-
-                if (commandLineArgs.WatermarkFile.IsNullOrEmpty())
+                else
                 {
-                    var watermarkFile = _settingsHelper.GetAppSetting("watermarkFile");
-                    if (watermarkFile.IsNullOrEmpty())
-                    {
-                        throw new EtsyListItException("User must specify watermark file!  Use -wm {filePath} to specify.");
-                    }
-
-                    _settingsHelper.SetAppSetting("watermarkFile", _protectedDataUtility.EncryptString(watermarkFile.ToSecureString()));
+                    _settingsHelper.SetAppSetting("OutputDirectory", commandLineArgs.OutputDirectory);
                 }
+                #endregion
+                #region API Key
+                if (commandLineArgs.APIKey.IsNullOrEmpty())
+                {
+                    commandLineArgs.APIKey = _settingsHelper.GetEncryptedAppSetting("APIKey");
+                    if (commandLineArgs.APIKey.IsNullOrEmpty())
+                    {
+                        throw new EtsyListItException("User must specify the API Key for the application!  Use command line argument -a {key} to specify.");
+                    }
+                }
+                else
+                {
+                    _settingsHelper.SetAppSettingWithEncryption("APIKey", commandLineArgs.APIKey);
+                }
+                #endregion
+                #region Shared Secret
+                if (commandLineArgs.SharedSecret.IsNullOrEmpty())
+                {
+                    commandLineArgs.SharedSecret = _settingsHelper.GetEncryptedAppSetting("SharedSecret");
+                    if (commandLineArgs.SharedSecret.IsNullOrEmpty())
+                    {
+                        
+                        throw new EtsyListItException("User must specify the Shared Secret for the application!  Use command line argument -ss {secret} to specify.");
+                    }
+                }
+                else
+                {
+                    _settingsHelper.SetAppSettingWithEncryption("SharedSecret", commandLineArgs.SharedSecret);
+                }
+                #endregion
             }
             catch (OptionException e)
             {
