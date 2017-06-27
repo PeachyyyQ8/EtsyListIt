@@ -1,5 +1,7 @@
 ﻿using System;
+using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.IO;
 using EtsyListIt.Utility.DomainObjects;
 using EtsyListIt.Utility.Interfaces;
 using EtsyWrapper.DomainObjects;
@@ -12,6 +14,8 @@ namespace EtsyListIt
     class Program
     {
         private static Container _container;
+        private static ISettingsUtility _settingsUtility;
+        private static EtsyListItArgs _listItArgs;
 
         static void Main(string[] args)
         {
@@ -20,14 +24,14 @@ namespace EtsyListIt
                 #region IOC
 
                 _container = ConfigureStructureMap();
-                var settingsUtility = _container.GetInstance<ISettingsUtility>();
+                _settingsUtility = _container.GetInstance<ISettingsUtility>();
                 var commandLineUtility = _container.GetInstance<ICommandLineUtility>();
 
                 #endregion
 
-                var listItArgs = commandLineUtility.ParseCommandLineArguments(args);
+                _listItArgs = commandLineUtility.ParseCommandLineArguments(args);
 
-                var authToken = GetAuthToken(listItArgs, settingsUtility);
+                var authToken = GetAuthToken(_listItArgs);
 
 
                 if (!authToken.IsValidEtsyToken())
@@ -36,7 +40,7 @@ namespace EtsyListIt
                         "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
                 }
 
-                var Listing = new Listing();
+                var listing = PopulateListing();
             }
             catch (Exception ex)
             {
@@ -46,12 +50,52 @@ namespace EtsyListIt
             }
         }
 
+        private static Listing PopulateListing()
+        {
+            if (_listItArgs.ListingCustomTitle.IsNullOrEmpty())
+            {
+                throw new EtsyListItException("User must provide custom title for listing.  Use command line arg -ct to specify.");
+            }
+            Listing listing = new Listing
+            {
+                Title = $"{_listItArgs.ListingCustomTitle} {_listItArgs.ListingDefaultTitle}",
+                Description = $"{_listItArgs.ListingCustomTitle} \r\n {_listItArgs.ListingDefaultDescription}",
+                Quantity = _listItArgs.ListingDefaultQuantity,
+            };
+            listing.Price = decimal.TryParse(args[1], out decimal price) ? price : throw new InvalidDataException("Price must be a decimal value.");
+            listing.IsSupply = true;
+            listing.CategoryId = 69150433;
+            listing.WhenMade = "2010_2017";
+            listing.WhoMade = "i_did";
+            listing.IsCustomizable = bool.TryParse(args[2], out bool isCustomizable) && isCustomizable;
+            listing.IsDigital = true;
+            listing.ShippingTemplateId = 30116314577;
+            listing.Images = new[] { new ListingImage
+                {
+                    ImagePath = GetWatermarkedImagePath(workingDirectory),
+                    Overwrite = true,
+                    IsWatermarked = true,
+                    Rank = 1}
+            };
+            listing.Tags = ParseTags(args);
+
+            var zip = CreateZipFile(workingDirectory);
+            listing.DigitalFiles = new[] { new DigitalFile()
+                {
+                    Path = zip,
+                    Name = Path.GetFileName(zip),
+                    Rank = 1}
+            };
+
+            var etsyListing = _etsyService.CreateListing(listing);
+        }
+
         private static Container ConfigureStructureMap()
         {
             return new Container(new DependencyRegistry());
         }
 
-        private static PermanentToken GetAuthToken(EtsyListItArgs args, ISettingsUtility settingsUtility)
+        private static PermanentToken GetAuthToken(EtsyListItArgs args)
         {
             var permanentToken = new PermanentToken();
             
@@ -64,8 +108,8 @@ namespace EtsyListIt
 
             permanentToken.APIKey = args.APIKey;
             permanentToken.SharedSecret = args.SharedSecret;
-            permanentToken.TokenID = settingsUtility.GetEncryptedAppSetting("PermanentAuthToken");
-            permanentToken.TokenSecret = settingsUtility.GetEncryptedAppSetting("PermanentSecret");
+            permanentToken.TokenID = _settingsUtility.GetEncryptedAppSetting("PermanentAuthToken");
+            permanentToken.TokenSecret = _settingsUtility.GetEncryptedAppSetting("PermanentSecret");
             // If permanent auth token is not found, get it.
             if (permanentToken.TokenID.IsNullOrEmpty() || permanentToken.TokenSecret.IsNullOrEmpty())
             {
@@ -86,8 +130,8 @@ namespace EtsyListIt
                     authenticationWrapper.GetPermanentTokenCredentials(args.APIKey, args.SharedSecret, tempCredentials, validator);
             }
             
-            settingsUtility.SetAppSettingWithEncryption("PermanentAuthToken", permanentToken.TokenID);
-            settingsUtility.SetAppSettingWithEncryption("PermanentSecret", permanentToken.TokenSecret);
+            _settingsUtility.SetAppSettingWithEncryption("PermanentAuthToken", permanentToken.TokenID);
+            _settingsUtility.SetAppSettingWithEncryption("PermanentSecret", permanentToken.TokenSecret);
             
             return permanentToken;
         }

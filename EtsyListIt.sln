@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtsyWrapper", "EtsyWrapper\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IllustratorWrapper", "IllustratorWrapper\IllustratorWrapper.csproj", "{18F7E6BD-A9D4-41D1-89E8-4C84C5B08D4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtsyWrapper.Unittests", "EtsyWrapper.Unittests\EtsyWrapper.Unittests.csproj", "{1BCCDD26-A268-4183-BFEE-AE747C79AA0D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtsyWrapper.UnitTests", "EtsyWrapper.Unittests\EtsyWrapper.UnitTests.csproj", "{1BCCDD26-A268-4183-BFEE-AE747C79AA0D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

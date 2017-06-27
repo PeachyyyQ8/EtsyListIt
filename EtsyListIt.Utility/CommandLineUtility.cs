@@ -8,6 +8,7 @@ namespace EtsyListIt.Utility
     public class CommandLineUtility : ICommandLineUtility
     {
         private readonly ISettingsUtility _settingsHelper;
+        private EtsyListItArgs _commandLineArgs;
 
         public CommandLineUtility(ISettingsUtility settingsHelper)
         {
@@ -16,95 +17,98 @@ namespace EtsyListIt.Utility
         public EtsyListItArgs ParseCommandLineArguments(string[] args)
         {
 
-            var commandLineArgs = new EtsyListItArgs();
+            _commandLineArgs = new EtsyListItArgs();
             var p = new OptionSet()
             {
                 {
                     "wd|Working Directory=", "Sets or changes the directory of the base file",
-                    v => commandLineArgs.WorkingDirectory = v
+                    v => _commandLineArgs.WorkingDirectory = v
                 },
                 {
                     "od|Output Directory=",
                     "Sets or changes the directory of the output files",
-                    v => commandLineArgs.OutputDirectory = v
+                    v => _commandLineArgs.OutputDirectory = v
                 },
                 {
                     "a|APIKey=",
                     "Sets or changes the API key for the application",
-                    v => commandLineArgs.APIKey = v
+                    v => _commandLineArgs.APIKey = v
                 },
                 {
                     "ss|Shared Secret=",
                     "Sets or changes the shared secret for the application",
-                    v => commandLineArgs.SharedSecret = v
+                    v => _commandLineArgs.SharedSecret = v
+                },
+                {
+                    "dt|Default Title=",
+                    "Sets or changes the default title for the listing.",
+                    v => _commandLineArgs.ListingDefaultTitle = v
+                },
+                {
+                    "ct|Custom Title=",
+                    "Sets the custom title for the listing. This is added to the standard title.",
+                    v => _commandLineArgs.ListingCustomTitle = v
+                },
+                {
+                    "dd|Default Description=",
+                    "Sets or changes the default description for the listing.",
+                    v => _commandLineArgs.ListingDefaultDescription = v
                 }
+
+
             };
             try
             {
                 p.Parse(args);
-                #region Working Directory
-                if (commandLineArgs.WorkingDirectory.IsNullOrEmpty())
-                {
-                    commandLineArgs.WorkingDirectory = _settingsHelper.GetAppSetting("WorkingDirectory");
-                    if (commandLineArgs.WorkingDirectory.IsNullOrEmpty())
-                    {
-                        throw new EtsyListItException("User must specify working directory!  Use command line argument -wd {directory} to specify.");
-                    }
-                }
-                else
-                {
-                    _settingsHelper.SetAppSetting("WorkingDirectory", commandLineArgs.WorkingDirectory);
-                }
-                #endregion
-                #region Output Directory
-                if (commandLineArgs.OutputDirectory.IsNullOrEmpty())
-                {
-                    commandLineArgs.OutputDirectory = _settingsHelper.GetAppSetting("OutputDirectory");
-                    if (commandLineArgs.OutputDirectory.IsNullOrEmpty())
-                    {
-                        throw new EtsyListItException("User must specify output directory!  Use command line argument -od {directory} to specify.");
-                    }
-                }
-                else
-                {
-                    _settingsHelper.SetAppSetting("OutputDirectory", commandLineArgs.OutputDirectory);
-                }
-                #endregion
-                #region API Key
-                if (commandLineArgs.APIKey.IsNullOrEmpty())
-                {
-                    commandLineArgs.APIKey = _settingsHelper.GetEncryptedAppSetting("APIKey");
-                    if (commandLineArgs.APIKey.IsNullOrEmpty())
-                    {
-                        throw new EtsyListItException("User must specify the API Key for the application!  Use command line argument -a {key} to specify.");
-                    }
-                }
-                else
-                {
-                    _settingsHelper.SetAppSettingWithEncryption("APIKey", commandLineArgs.APIKey);
-                }
-                #endregion
-                #region Shared Secret
-                if (commandLineArgs.SharedSecret.IsNullOrEmpty())
-                {
-                    commandLineArgs.SharedSecret = _settingsHelper.GetEncryptedAppSetting("SharedSecret");
-                    if (commandLineArgs.SharedSecret.IsNullOrEmpty())
-                    {
-                        
-                        throw new EtsyListItException("User must specify the Shared Secret for the application!  Use command line argument -ss {secret} to specify.");
-                    }
-                }
-                else
-                {
-                    _settingsHelper.SetAppSettingWithEncryption("SharedSecret", commandLineArgs.SharedSecret);
-                }
-                #endregion
+
+                _commandLineArgs.WorkingDirectory = GetValueAndStore("WorkingDirectory", _commandLineArgs.WorkingDirectory, "-wd");
+                _commandLineArgs.OutputDirectory =
+                    GetValueAndStore("Output Directory", _commandLineArgs.OutputDirectory, "-od");
+                _commandLineArgs.APIKey = GetValueAndStore("APIKey", _commandLineArgs.APIKey, "-a");
+                _commandLineArgs.SharedSecret = GetValueAndStore("SharedSecret", _commandLineArgs.SharedSecret, "-ss");
+                _commandLineArgs.ListingDefaultTitle =
+                    GetValueAndStore("ListingDefaultTitle", _commandLineArgs.ListingDefaultTitle, "-dt");
+                _commandLineArgs.ListingDefaultDescription =
+                    GetValueAndStore("ListingDefaultDescription", _commandLineArgs.ListingDefaultDescription, "-dd");
+                _commandLineArgs.ListingCustomTitle = GetValue("ListingCustomTitle", _commandLineArgs.ListingCustomTitle, "-ct");
+                _commandLineArgs.ListingDefaultQuantity = GetValueAndStore("ListingDefaultQuantity",
+                    _commandLineArgs.ListingDefaultQuantity, "-dq");
             }
             catch (OptionException e)
             {
                 throw new EtsyListItException("Unable to parse commandLine args.  OptionsException: {0}".QuickFormat(e.Message));
             }
-            return commandLineArgs;
+            return _commandLineArgs;
+        }
+
+        private string GetValue(string key, string value, string argName)
+        {
+            if (_commandLineArgs.ListingCustomTitle.IsNullOrEmpty())
+            {
+                throw new EtsyListItException(
+                    $"User must specify {key.SplitAtCapitalLetter().ToLower()}!  Use command line argument {argName} value to specify.");
+            }
+
+            return value;
+        }
+
+        private string GetValueAndStore(string key, string value, string argName)
+        {
+            if (value.IsNullOrEmpty())
+            {
+                value = _settingsHelper.GetAppSetting(key);
+                if (value.IsNullOrEmpty())
+                {
+                    throw new EtsyListItException(
+                        $"User must specify {key.SplitAtCapitalLetter().ToLower()}!  Use command line argument {argName} value to specify.");
+                }
+            }
+            else
+            {
+                _settingsHelper.SetAppSetting(key, value);
+            }
+
+            return value;
         }
     }
 

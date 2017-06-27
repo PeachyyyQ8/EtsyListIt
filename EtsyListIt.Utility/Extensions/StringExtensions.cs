@@ -41,7 +41,15 @@ namespace EtsyListIt.Utility.Extensions
             return string.Format(value, objects);
         }
 
-        
+        public static string SplitAtCapitalLetter(this string value)
+        {
+            var r = new Regex(@"
+                (?<=[A-Z])(?=[A-Z][a-z]) |
+                 (?<=[^A-Z])(?=[A-Z]) |
+                 (?<=[A-Za-z])(?=[^A-Za-z])", RegexOptions.IgnorePatternWhitespace);
+
+            return r.Replace(value, " ");
+        }
     }
 }
 
