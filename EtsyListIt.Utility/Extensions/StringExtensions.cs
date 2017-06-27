@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.Linq;
 using System.Text.RegularExpressions;
+using EtsyListIt.Utility.DomainObjects;
 
 namespace EtsyListIt.Utility.Extensions
 {

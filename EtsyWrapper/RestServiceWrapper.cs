@@ -32,6 +32,11 @@ namespace EtsyWrapper
         {
             return OAuth1Authenticator.ForAccessToken(apiKey, sharedSecret, tempToken.OAuthToken, tempToken.OAuthTokenSecret, verifier);
         }
-        
+
+        public IAuthenticator GetAuthenticatorForProtectedResource(PermanentToken authToken)
+        {
+            return OAuth1Authenticator.ForProtectedResource(authToken.APIKey, authToken.SharedSecret, authToken.TokenID,
+                authToken.TokenSecret);
+        }
     }
 }

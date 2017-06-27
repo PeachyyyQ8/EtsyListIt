@@ -4,14 +4,11 @@ namespace EtsyWrapper.Interfaces
 {
     public interface IListingWrapper
     {
-        Listing CreateListing(Listing listing);
-
-        Listing CreateListingWithImage(ListingWithImage listing);
-
-        DigitalListingWithImages CreateDigitalListingWithImage(DigitalListingWithImages digitalListingWithImages);
-
-        Listing AddImage(ListingWithImage listing);
-
-        Listing AddDigitalFile(DigitalListingWithImages digitalListingWithImages);
+        Listing CreateListing(Listing listing, PermanentToken authToken);
+        Listing CreateListingWithImage(Listing listing, PermanentToken authToken);
+        Listing CreateDigitalListingWithImage(Listing listing, PermanentToken authToken);
+        bool AddImageToListing(Listing listing, PermanentToken authToken);
+        bool AddDigitalFileToListing(Listing listing, PermanentToken authToken);
+        void UpdateListing(Listing listing, PermanentToken authToken);
     }
 }

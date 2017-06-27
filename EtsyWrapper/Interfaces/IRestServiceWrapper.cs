@@ -10,6 +10,7 @@ namespace EtsyWrapper.Interfaces
         IAuthenticator GetAuthenticatorForRequestToken(string apiKey, string sharedSecretS);
         RestRequest GetRestRequest(string oauthRequestToken, Method post);
         IAuthenticator GetAuthenticatorForAccessToken(string apiKey, string sharedSecret, TemporaryToken tempToken, string verifier);
-        
+
+        IAuthenticator GetAuthenticatorForProtectedResource(PermanentToken authToken);
     }
 }

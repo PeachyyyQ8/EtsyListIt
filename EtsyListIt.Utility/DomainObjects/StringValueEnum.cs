@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 
-namespace EtsyListIt.Utility
+namespace EtsyListIt.Utility.DomainObjects
 {
 
     #region Class StringEnum

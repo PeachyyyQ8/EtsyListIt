@@ -42,7 +42,9 @@ namespace EtsyListIt
                 }
 
                 var listing = PopulateGraphicListing(_listItArgs.WorkingDirectory + @"\thWatermark.jpg", _listItArgs.WorkingDirectory + @"\th.zip");
-                listing = _listingWrapper.CreateDigitalListingWithImage(listing)
+                listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
+
+                Console.Write("Listing created.  Press any key to end.");
             }
             catch (Exception ex)
             {
@@ -52,20 +54,18 @@ namespace EtsyListIt
             }
         }
 
-        private static DigitalListingWithImages PopulateGraphicListing(string watermarkPath, string digitalFilePath)
+        private static Listing PopulateGraphicListing(string watermarkPath, string digitalFilePath)
         {
             if (_listItArgs.ListingCustomTitle.IsNullOrEmpty())
             {
                 throw new EtsyListItException(
                     "User must provide custom title for listing.  Use command line arg -ct to specify.");
             }
-            var listing = new DigitalListingWithImages
+            var listing = new Listing
             {
                 Title = $"{_listItArgs.ListingCustomTitle} {_listItArgs.ListingDefaultTitle}",
                 Description = $"{_listItArgs.ListingCustomTitle}\r\n{_listItArgs.ListingDefaultDescription}",
-                Quantity = int.TryParse(_listItArgs.ListingQuantity, out int quantity)
-                    ? quantity
-                    : throw new InvalidDataException("Quantity must be a whole number."),
+                Quantity = _listItArgs.ListingQuantity,
                 Price = decimal.TryParse(_listItArgs.ListingPrice, out decimal price)
                     ? price
                     : throw new InvalidDataException("Price must be a decimal value."),
