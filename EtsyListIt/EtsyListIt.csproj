@@ -61,6 +61,10 @@
       <Project>{063CC052-9676-41CA-8A80-2A3F71BE645B}</Project>
       <Name>EtsyWrapper</Name>
     </ProjectReference>
+    <ProjectReference Include="..\IllustratorWrapper\IllustratorWrapper.csproj">
+      <Project>{18f7e6bd-a9d4-41d1-89e8-4c84c5b08d4e}</Project>
+      <Name>IllustratorWrapper</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

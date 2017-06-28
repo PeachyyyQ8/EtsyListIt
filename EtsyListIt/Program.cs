@@ -1,12 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using EtsyListIt.Utility.DomainObjects;
 using EtsyListIt.Utility.Interfaces;
 using EtsyWrapper.DomainObjects;
 using EtsyWrapper.Interfaces;
 using StructureMap;
 using EtsyListIt.Utility.Extensions;
+using IllustratorWrapper.DomainObjects;
+using IllustratorWrapper.Interfaces;
 
 namespace EtsyListIt
 {
@@ -16,6 +21,7 @@ namespace EtsyListIt
         private static ISettingsUtility _settingsUtility;
         private static EtsyListItArgs _listItArgs;
         private static IListingWrapper _listingWrapper;
+        private static IIllustratorDocumentWrapper _illustratorDocumentWrapper;
 
         static void Main(string[] args)
         {
@@ -27,14 +33,35 @@ namespace EtsyListIt
                 _settingsUtility = _container.GetInstance<ISettingsUtility>();
                 var commandLineUtility = _container.GetInstance<ICommandLineUtility>();
                 _listingWrapper = _container.GetInstance<IListingWrapper>();
+                _illustratorDocumentWrapper = _container.GetInstance<IIllustratorDocumentWrapper>();
 
                 #endregion
 
                 _listItArgs = commandLineUtility.ParseCommandLineArguments(args);
+                #region Illistrator File Creation
 
+                var application = new IllustratorApplication();
+                if (_listItArgs.WorkingDirectory.IsNullOrEmpty())
+                {
+                    throw new EtsyListItException("Working directory can not be empty.");
+                }
+                var baseFiles = Directory.GetFiles(_listItArgs.WorkingDirectory).Where(x => x.Contains(".svg")).ToList();
+                if (!baseFiles.Any())
+                {
+                    throw new EtsyListItException("There are no files to list!");
+                }
+                foreach (var baseFile in baseFiles)
+                {
+                    if (_listItArgs.OutputDirectory.IsNullOrEmpty())
+                    {
+                        throw new EtsyListItException("Output directory can not be empty.");
+                    }
+                    _illustratorDocumentWrapper.ExportFileAsJPEG(baseFile, _listItArgs.OutputDirectory, 100);
+                }
+                #endregion
+                #region Begin Etsy Export
                 var authToken = GetAuthToken(_listItArgs);
-
-
+                
                 if (!authToken.IsValidEtsyToken())
                 {
                     throw new EtsyListItException(
@@ -43,8 +70,9 @@ namespace EtsyListIt
 
                 var listing = PopulateGraphicListing(_listItArgs.WorkingDirectory + @"\thWatermark.jpg", _listItArgs.WorkingDirectory + @"\th.zip");
                 listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
+                #endregion
 
-                Console.Write("Listing created.  Press any key to end.");
+                Console.Write($"Listing created. New listing ID: {listing.ID} Press any key to end.");
             }
             catch (Exception ex)
             {
@@ -53,6 +81,8 @@ namespace EtsyListIt
                 Console.ReadLine();
             }
         }
+
+       
 
         private static Listing PopulateGraphicListing(string watermarkPath, string digitalFilePath)
         {
