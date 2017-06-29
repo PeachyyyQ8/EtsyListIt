@@ -2,6 +2,7 @@
 using EtsyListIt.Utility.Interfaces;
 using EtsyWrapper;
 using EtsyWrapper.Interfaces;
+using IllustratorWrapper;
 using StructureMap;
 
 namespace EtsyListIt
@@ -15,6 +16,8 @@ namespace EtsyListIt
             For<ICommandLineUtility>().Use<CommandLineUtility>();
             For<IEtsyAuthenticationWrapper>().Use<EtsyAuthenticationWrapper>();
             For<IRestServiceWrapper>().Use<RestServiceWrapper>();
+            For<ISystemUtility>().Use<SystemUtility>();
+            For<IIllustratorActionWrapper>().Use<IllustratorActionWrapper>();
         }
     }
 }

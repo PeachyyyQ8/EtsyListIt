@@ -3,15 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using EtsyListIt.Utility.DomainObjects;
 using EtsyListIt.Utility.Interfaces;
 using EtsyWrapper.DomainObjects;
 using EtsyWrapper.Interfaces;
 using StructureMap;
 using EtsyListIt.Utility.Extensions;
-using IllustratorWrapper.DomainObjects;
-using IllustratorWrapper.Interfaces;
+using IllustratorWrapper;
 
 namespace EtsyListIt
 {
@@ -19,60 +17,71 @@ namespace EtsyListIt
     {
         private static Container _container;
         private static ISettingsUtility _settingsUtility;
-        private static EtsyListItArgs _listItArgs;
         private static IListingWrapper _listingWrapper;
-        private static IIllustratorDocumentWrapper _illustratorDocumentWrapper;
+        private static IIllustratorActionWrapper _illustratorActionWrapper;
+        private static ISystemUtility _systemUtility;
 
         static void Main(string[] args)
         {
             try
             {
                 #region IOC
-
                 _container = ConfigureStructureMap();
                 _settingsUtility = _container.GetInstance<ISettingsUtility>();
                 var commandLineUtility = _container.GetInstance<ICommandLineUtility>();
                 _listingWrapper = _container.GetInstance<IListingWrapper>();
-                _illustratorDocumentWrapper = _container.GetInstance<IIllustratorDocumentWrapper>();
+                _illustratorActionWrapper = _container.GetInstance<IIllustratorActionWrapper>();
+                _systemUtility = _container.GetInstance<ISystemUtility>();
 
                 #endregion
 
-                _listItArgs = commandLineUtility.ParseCommandLineArguments(args);
-                #region Illistrator File Creation
-
-                var application = new IllustratorApplication();
-                if (_listItArgs.WorkingDirectory.IsNullOrEmpty())
+                var listItArgs = commandLineUtility.ParseCommandLineArguments(args);
+                
+                if (listItArgs.WorkingDirectory.IsNullOrEmpty())
                 {
                     throw new EtsyListItException("Working directory can not be empty.");
                 }
-                var baseFiles = Directory.GetFiles(_listItArgs.WorkingDirectory).Where(x => x.Contains(".svg")).ToList();
+                var baseFiles = Directory.GetFiles(listItArgs.WorkingDirectory).Where(x => x.Contains(".svg")).ToList();
                 if (!baseFiles.Any())
                 {
                     throw new EtsyListItException("There are no files to list!");
                 }
                 foreach (var baseFile in baseFiles)
                 {
-                    if (_listItArgs.OutputDirectory.IsNullOrEmpty())
+                    #region Illustrator File Creation & Export
+                    if (listItArgs.OutputDirectory.IsNullOrEmpty())
                     {
                         throw new EtsyListItException("Output directory can not be empty.");
                     }
-                    _illustratorDocumentWrapper.ExportFileAsJPEG(baseFile, _listItArgs.OutputDirectory, 100);
-                }
-                #endregion
-                #region Begin Etsy Export
-                var authToken = GetAuthToken(_listItArgs);
-                
-                if (!authToken.IsValidEtsyToken())
-                {
-                    throw new EtsyListItException(
-                        "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
-                }
+                    var outputDirectory = Path.Combine(listItArgs.OutputDirectory, Path.GetFileNameWithoutExtension(baseFile));
 
-                var listing = PopulateGraphicListing(_listItArgs.WorkingDirectory + @"\thWatermark.jpg", _listItArgs.WorkingDirectory + @"\th.zip");
-                listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
-                #endregion
+                    ExportFiles(baseFile, outputDirectory, listItArgs.WatermarkFile);
+                    #endregion
+                    Directory.CreateDirectory(outputDirectory);
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    Directory.CreateDirectory(Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(baseFile)));
+                    var zipFile = _systemUtility.CreateZipFileFromDirectory(baseFile, outputDirectory);
+                    var ignoredContent = new List<string> { ".svg", ".zip"};
+                    _systemUtility.DeleteFilesInDirectory(outputDirectory, ignoredContent);
+                    var watermark = _illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile, outputDirectory);
 
-                Console.Write($"Listing created. New listing ID: {listing.ID} Press any key to end.");
+                    #region Begin Etsy Export
+
+                    var authToken = GetAuthToken(listItArgs);
+
+                    if (!authToken.IsValidEtsyToken())
+                    {
+                        throw new EtsyListItException(
+                            "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
+                    }
+
+                    var listing = PopulateGraphicListing(watermark, zipFile, listItArgs);
+                    listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
+
+                    #endregion
+
+                    Console.Write($"Listing created. New listing ID: {listing.ID} Press any key to end.");
+                }
             }
             catch (Exception ex)
             {
@@ -82,21 +91,31 @@ namespace EtsyListIt
             }
         }
 
-       
 
-        private static Listing PopulateGraphicListing(string watermarkPath, string digitalFilePath)
+        private static void ExportFiles(string baseFile, string outputDirectory, string watermarkFile)
         {
-            if (_listItArgs.ListingCustomTitle.IsNullOrEmpty())
+            _illustratorActionWrapper.ExportFileAsJPEG(baseFile, outputDirectory);
+            _illustratorActionWrapper.ExportFileAsPNG(baseFile, outputDirectory);
+            _illustratorActionWrapper.ExportFileAsDXF(baseFile, outputDirectory);
+            _illustratorActionWrapper.SaveFileAsEPS(baseFile, outputDirectory);
+            _illustratorActionWrapper.SaveFileAsPDF(baseFile, outputDirectory);
+            _illustratorActionWrapper.SaveFileWithWatermark(watermarkFile, baseFile, outputDirectory);
+        }
+
+
+        private static Listing PopulateGraphicListing(string watermarkPath, string digitalFilePath, EtsyListItArgs listItArgs)
+        {
+            if (listItArgs.ListingCustomTitle.IsNullOrEmpty())
             {
                 throw new EtsyListItException(
                     "User must provide custom title for listing.  Use command line arg -ct to specify.");
             }
             var listing = new Listing
             {
-                Title = $"{_listItArgs.ListingCustomTitle} {_listItArgs.ListingDefaultTitle}",
-                Description = $"{_listItArgs.ListingCustomTitle}\r\n{_listItArgs.ListingDefaultDescription}",
-                Quantity = _listItArgs.ListingQuantity,
-                Price = decimal.TryParse(_listItArgs.ListingPrice, out decimal price)
+                Title = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}",
+                Description = $"{listItArgs.ListingCustomTitle}\r\n{listItArgs.ListingDefaultDescription}",
+                Quantity = listItArgs.ListingQuantity,
+                Price = decimal.TryParse(listItArgs.ListingPrice, out decimal price)
                     ? price
                     : throw new InvalidDataException("Price must be a decimal value."),
                 IsSupply = true,
@@ -125,7 +144,7 @@ namespace EtsyListIt
                         Rank = 1
                     }
                 },
-                Tags = _listItArgs.ListingTags.Split(',')
+                Tags = listItArgs.ListingTags.Split(',')
             };
 
             return listing;

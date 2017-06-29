@@ -42,10 +42,9 @@
   <ItemGroup>
     <Compile Include="DomainObjects\IllustratorApplication.cs" />
     <Compile Include="DomainObjects\IllustratorDocument.cs" />
-    <Compile Include="IllustratorApplicationWrapper.cs" />
-    <Compile Include="Interfaces\IIllustratorDocumentWrapper.cs" />
-    <Compile Include="Interfaces\IIllustratorApplicationWrapper.cs" />
-    <Compile Include="IllustratorDocumentWrapper.cs" />
+    <Compile Include="IIllustratorActionWrapper.cs" />
+    <Compile Include="IllustratorActionWrapper.cs" />
+    <Compile Include="IllustratorException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -69,7 +69,13 @@ namespace EtsyListIt.Utility
                     "",
                     "Sets the price for the listing.",
                     v => _commandLineArgs.ListingTags = v
-                }
+                },
+                {
+                "wm|Watermark File=" +
+                "",
+                "Sets the watermark to place on the graphic.",
+                v => _commandLineArgs.WatermarkFile = v
+            }
 
 
 
@@ -93,6 +99,8 @@ namespace EtsyListIt.Utility
                     _commandLineArgs.ListingQuantity, "-lq");
                 _commandLineArgs.ListingPrice = GetValue("Listing Price", _commandLineArgs.ListingPrice, "-lp");
                 _commandLineArgs.ListingTags = GetValue("Tags", _commandLineArgs.ListingTags, "-tags");
+                _commandLineArgs.WatermarkFile = GetValueAndStore("WatermarkFile",
+                    _commandLineArgs.WatermarkFile, "-wm");
             }
             catch (OptionException e)
             {
