@@ -25,6 +25,15 @@ namespace EtsyListIt
         {
             try
             {
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+            try
+            {
                 #region IOC
                 _container = ConfigureStructureMap();
                 _settingsUtility = _container.GetInstance<ISettingsUtility>();
@@ -48,58 +57,69 @@ namespace EtsyListIt
                 }
                 foreach (var baseFile in baseFiles)
                 {
-                    #region Illustrator File Creation & Export
-                    if (listItArgs.OutputDirectory.IsNullOrEmpty())
+                    if(listItArgs.OutputDirectory.IsNullOrEmpty())
                     {
                         throw new EtsyListItException("Output directory can not be empty.");
                     }
-                    var outputDirectory = Path.Combine(listItArgs.OutputDirectory, Path.GetFileNameWithoutExtension(baseFile));
+                    var outputDirectory = Path.Combine(listItArgs.OutputDirectory,
+                        Path.GetFileNameWithoutExtension(baseFile));
 
-                    ExportFiles(baseFile, outputDirectory, listItArgs.WatermarkFile);
-                    #endregion
-                    Directory.CreateDirectory(outputDirectory);
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    Directory.CreateDirectory(Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(baseFile)));
-                    var zipFile = _systemUtility.CreateZipFileFromDirectory(baseFile, outputDirectory);
-                    var ignoredContent = new List<string> { ".svg", ".zip"};
-                    _systemUtility.DeleteFilesInDirectory(outputDirectory, ignoredContent);
-                    var watermark = _illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile, outputDirectory);
-
-                    #region Begin Etsy Export
-
-                    var authToken = GetAuthToken(listItArgs);
-
-                    if (!authToken.IsValidEtsyToken())
+                    try
                     {
-                        throw new EtsyListItException(
-                            "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
+                        #region Illustrator File Creation & Export
+                        Directory.CreateDirectory(outputDirectory);
+                        ExportFiles(baseFile, outputDirectory);
+                        #endregion
+                        
+                        var zipFile = _systemUtility.CreateZipFileFromDirectory(baseFile, outputDirectory);
+                        var ignoredContent = new List<string> {".svg", ".zip"};
+                        _systemUtility.DeleteFilesInDirectory(outputDirectory, ignoredContent);
+                        var watermark =
+                            _illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile,
+                                outputDirectory);
+
+                        #region Begin Etsy Export
+
+                        var authToken = GetAuthToken(listItArgs);
+
+                        if (!authToken.IsValidEtsyToken())
+                        {
+                            throw new EtsyListItException(
+                                "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
+                        }
+
+                        var listing = PopulateGraphicListing(watermark, zipFile, listItArgs);
+                        listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
+
+                        #endregion
+
+                        Console.Write($"Listing created. New listing ID: {listing.ID} Press any key to end.");
                     }
-
-                    var listing = PopulateGraphicListing(watermark, zipFile, listItArgs);
-                    listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
-
-                    #endregion
-
-                    Console.Write($"Listing created. New listing ID: {listing.ID} Press any key to end.");
+                    catch (Exception)
+                    {
+                        Directory.Delete(outputDirectory, true);
+                        throw;
+                    }
                 }
             }
             catch (Exception ex)
+
             {
                 Console.WriteLine(ex);
                 Console.Write("Type any key to quit.");
                 Console.ReadLine();
+
             }
         }
 
 
-        private static void ExportFiles(string baseFile, string outputDirectory, string watermarkFile)
+        private static void ExportFiles(string baseFile, string outputDirectory)
         {
             _illustratorActionWrapper.ExportFileAsJPEG(baseFile, outputDirectory);
             _illustratorActionWrapper.ExportFileAsPNG(baseFile, outputDirectory);
             _illustratorActionWrapper.ExportFileAsDXF(baseFile, outputDirectory);
             _illustratorActionWrapper.SaveFileAsEPS(baseFile, outputDirectory);
             _illustratorActionWrapper.SaveFileAsPDF(baseFile, outputDirectory);
-            _illustratorActionWrapper.SaveFileWithWatermark(watermarkFile, baseFile, outputDirectory);
         }
 
 

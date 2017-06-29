@@ -12,7 +12,7 @@ namespace EtsyListIt.Utility
         public string CreateZipFileFromDirectory(string baseFile, string outputDirectory)
         {
             var files = Directory.GetFiles(outputDirectory);
-            var zipFileName = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(baseFile) + "zip");
+            var zipFileName = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(baseFile) + ".zip");
             using (var zip = ZipFile.Open(zipFileName, ZipArchiveMode.Create))
             {
                 foreach (var file in files)

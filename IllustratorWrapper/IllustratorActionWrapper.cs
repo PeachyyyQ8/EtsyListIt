@@ -17,7 +17,10 @@ namespace IllustratorWrapper
         {
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".jpg");
             
-            dynamic document = _application.Open(baseFile);
+            Document document = _application.Open(baseFile);
+            document.SelectObjectsOnActiveArtboard();
+            document.Artboards.GetActiveArtboardIndex();
+            document.FitArtboardToSelectedArt();
             dynamic jpgOptions = new ExportOptionsJPEG();
             jpgOptions.QualitySetting = 100;
             jpgOptions.AntiAliasing = false;
@@ -31,6 +34,8 @@ namespace IllustratorWrapper
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".dxf");
 
             dynamic document = _application.Open(baseFile);
+            document.SelectObjectsOnActiveArtboard();
+            document.FitArtboardToSelectedArt();
             dynamic dxfOptions = new ExportOptionsAutoCAD();
             Type enumType = typeof(AiAutoCADExportFileFormat);
             dynamic enumValue = enumType.GetField("aiDXF").GetValue(null);
@@ -44,6 +49,8 @@ namespace IllustratorWrapper
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".eps");
 
             dynamic document = _application.Open(baseFile);
+            document.SelectObjectsOnActiveArtboard();
+            document.FitArtboardToSelectedArt();
             document.SaveAs(fullFileName, new EPSSaveOptions());
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
@@ -53,6 +60,8 @@ namespace IllustratorWrapper
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".pdf");
 
             dynamic document = _application.Open(baseFile);
+            document.SelectObjectsOnActiveArtboard();
+            document.FitArtboardToSelectedArt();
             document.SaveAs(fullFileName, new PDFSaveOptions());
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
@@ -96,6 +105,7 @@ namespace IllustratorWrapper
 
             //scale watermark to fit graphic
             int scale = 0;
+
             var watermarkHeight = watermarkGroup.Height;
             var watermarkWidth = watermarkGroup.Width;
 
@@ -115,8 +125,6 @@ namespace IllustratorWrapper
 
             watermarkDocument.Close(AiSaveOptions.aiDoNotSaveChanges);
             CenterItemsOnArtboard(sourceDocument);
-
-            sourceDocument.FitArtboardToSelectedArt();
 
             dynamic jpgOptions = new ExportOptionsJPEG();
             jpgOptions.QualitySetting = 100;
@@ -148,8 +156,10 @@ namespace IllustratorWrapper
         public void ExportFileAsPNG(string baseFile, string outputDirectory, string newFileName = null)
         {
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".png");
-
+            
             dynamic document = _application.Open(baseFile);
+            document.SelectObjectsOnActiveArtboard();
+            document.FitArtboardToSelectedArt();
             dynamic pngOptions = new ExportOptionsPNG24();
             pngOptions.Transparency = true;
             pngOptions.AntiAliasing = false;
