@@ -17,10 +17,9 @@ namespace IllustratorWrapper
         {
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".jpg");
             
-            Document document = _application.Open(baseFile);
-            document.SelectObjectsOnActiveArtboard();
-            document.Artboards.GetActiveArtboardIndex();
-            document.FitArtboardToSelectedArt();
+            dynamic document = _application.Open(baseFile);
+            FitArtboardToCurrentDocument(document);
+            //CenterItemsOnArtboard(document);
             dynamic jpgOptions = new ExportOptionsJPEG();
             jpgOptions.QualitySetting = 100;
             jpgOptions.AntiAliasing = false;
@@ -29,13 +28,13 @@ namespace IllustratorWrapper
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
         
-        public void ExportFileAsDXF(string baseFile, string outputDirectory, string newFileName = null)
+        public void ExportFileAsDXF(string baseFile, string outputDirectory, string extension, string newFileName = null)
         {
-            var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".dxf");
-
+            var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, extension);
+            
             dynamic document = _application.Open(baseFile);
-            document.SelectObjectsOnActiveArtboard();
-            document.FitArtboardToSelectedArt();
+            FitArtboardToCurrentDocument(document);
+            //CenterItemsOnArtboard(document);
             dynamic dxfOptions = new ExportOptionsAutoCAD();
             Type enumType = typeof(AiAutoCADExportFileFormat);
             dynamic enumValue = enumType.GetField("aiDXF").GetValue(null);
@@ -49,8 +48,8 @@ namespace IllustratorWrapper
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".eps");
 
             dynamic document = _application.Open(baseFile);
-            document.SelectObjectsOnActiveArtboard();
-            document.FitArtboardToSelectedArt();
+            FitArtboardToCurrentDocument(document);
+            //CenterItemsOnArtboard(document);
             document.SaveAs(fullFileName, new EPSSaveOptions());
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
@@ -60,18 +59,20 @@ namespace IllustratorWrapper
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".pdf");
 
             dynamic document = _application.Open(baseFile);
-            document.SelectObjectsOnActiveArtboard();
-            document.FitArtboardToSelectedArt();
+            FitArtboardToCurrentDocument(document);
+            //CenterItemsOnArtboard(document);
             document.SaveAs(fullFileName, new PDFSaveOptions());
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
 
         public string SaveFileWithWatermark(string watermarkFile, string baseFile, string outputDirectory)
         {
-            var fullFileName = Path.Combine(outputDirectory, baseFile + "Watermarked.jpg");
+
+            var fullFileName = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(baseFile) + "Watermarked.jpg");
 
             dynamic sourceDocument = _application.Open(baseFile);
-            
+            FitArtboardToCurrentDocument(sourceDocument);
+
             //select all and group
             sourceDocument.SelectObjectsOnActiveArtboard();
             dynamic sourceDocSelection = sourceDocument.Selection;
@@ -158,8 +159,8 @@ namespace IllustratorWrapper
             var fullFileName = GetFullFileName(baseFile, outputDirectory, newFileName, ".png");
             
             dynamic document = _application.Open(baseFile);
-            document.SelectObjectsOnActiveArtboard();
-            document.FitArtboardToSelectedArt();
+            FitArtboardToCurrentDocument(document);
+            //CenterItemsOnArtboard(document);
             dynamic pngOptions = new ExportOptionsPNG24();
             pngOptions.Transparency = true;
             pngOptions.AntiAliasing = false;
@@ -168,19 +169,18 @@ namespace IllustratorWrapper
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
 
-        public void CenterItemsOnArtboard(dynamic aDoc)
+        public void CenterItemsOnArtboard(dynamic document)
         {
-            aDoc.SelectObjectsOnActiveArtboard();
-            var sel = aDoc.Selection;
+            document.SelectObjectsOnActiveArtboard();
+            var sel = document.Selection;
 
             if (sel.Length > 0)
             {
                 foreach (var s in sel)
                 {
                     dynamic objectToCenter = s;
-                    var artboardIndex = aDoc.Artboards.GetActiveArtboardIndex() + 1;
-                    var activeArtboard = aDoc.Artboards[artboardIndex].ArtboardRect;
-
+                    var artboardIndex = document.Artboards.GetActiveArtboardIndex() + 1;
+                    var activeArtboard = document.Artboards[artboardIndex].ArtboardRect;
                     var vertCenter = activeArtboard[1] / 2;
                     var horizCenter = activeArtboard[2] / 2;
 
@@ -201,5 +201,41 @@ namespace IllustratorWrapper
             }
         }
 
+        public void FitArtboardToCurrentDocument(dynamic document)
+        {
+            var index = document.Artboards.GetActiveArtboardIndex() + 1;
+            var left = document.VisibleBounds[0];
+            var top = document.VisibleBounds[1];
+            var right = document.VisibleBounds[2];
+            var bottom = document.VisibleBounds[3];
+            document.Artboards[index].ArtboardRect = new[]
+            {
+                document.VisibleBounds[0] - document.VisibleBounds[1] * .05,
+                document.VisibleBounds[1] + document.VisibleBounds[1] * .05,
+                document.VisibleBounds[2] + document.VisibleBounds[1] * .05,
+                document.VisibleBounds[3] - document.VisibleBounds[1] * .05
+            };
+        }
+
+        public void UngroupItems(dynamic groupItems)
+        {
+            foreach (dynamic item in groupItems)
+            {
+                groupItems.Remove(item);
+            }
+        }
+
+        public dynamic GroupItems(dynamic document)
+        {
+            document.SelectObjectsOnActiveArtboard();
+            dynamic selection = document.Selection;
+            dynamic imageGroup = document.GroupItems.Add();
+            for (var i = 0; i < selection.Length; i++)
+            {
+                selection[i].moveToBeginning(imageGroup);
+            }
+
+            return document.GroupItems;
+        }
     }
 }

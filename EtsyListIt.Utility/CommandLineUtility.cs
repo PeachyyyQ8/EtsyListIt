@@ -16,6 +16,7 @@ namespace EtsyListIt.Utility
         }
         public EtsyListItArgs ParseCommandLineArguments(string[] args)
         {
+            var addToEtsy = string.Empty;
 
             _commandLineArgs = new EtsyListItArgs();
             var p = new OptionSet()
@@ -75,7 +76,13 @@ namespace EtsyListIt.Utility
                 "",
                 "Sets the watermark to place on the graphic.",
                 v => _commandLineArgs.WatermarkFile = v
-            }
+            },
+                {
+                    "add|Add To Etsy=" + 
+                    "",
+                    "Tells the application whether you want to add a listing for the graphic to Etsy.",
+                    v => _commandLineArgs.AddToEtsy = v
+                }
 
 
 
@@ -101,6 +108,8 @@ namespace EtsyListIt.Utility
                 _commandLineArgs.ListingTags = GetValue("Tags", _commandLineArgs.ListingTags, "-tags");
                 _commandLineArgs.WatermarkFile = GetValueAndStore("WatermarkFile",
                     _commandLineArgs.WatermarkFile, "-wm");
+                _commandLineArgs.AddToEtsy = GetValueAndStore("AddToEtsy", _commandLineArgs.AddToEtsy, "-add");
+
             }
             catch (OptionException e)
             {

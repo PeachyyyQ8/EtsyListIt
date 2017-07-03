@@ -67,36 +67,58 @@ namespace EtsyListIt
                     try
                     {
                         #region Illustrator File Creation & Export
+
+                        if (Directory.Exists(outputDirectory))
+                        {
+                            Directory.Delete(outputDirectory, true);
+                        }
+
                         Directory.CreateDirectory(outputDirectory);
                         ExportFiles(baseFile, outputDirectory);
                         #endregion
                         
+                        File.Copy(baseFile, Path.Combine(outputDirectory, Path.GetFileName(baseFile)));
                         var zipFile = _systemUtility.CreateZipFileFromDirectory(baseFile, outputDirectory);
-                        var ignoredContent = new List<string> {".svg", ".zip"};
+                        var ignoredContent = new List<string> {".zip"};
                         _systemUtility.DeleteFilesInDirectory(outputDirectory, ignoredContent);
                         var watermark =
                             _illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile,
                                 outputDirectory);
 
-                        #region Begin Etsy Export
+                        var addToEtsy = false;
+                        var success = bool.TryParse(listItArgs.AddToEtsy, out addToEtsy);
 
-                        var authToken = GetAuthToken(listItArgs);
-
-                        if (!authToken.IsValidEtsyToken())
+                        if (success && addToEtsy)
                         {
-                            throw new EtsyListItException(
-                                "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
+                            #region Begin Etsy Export
+
+                            var authToken = GetAuthToken(listItArgs);
+
+                            if (!authToken.IsValidEtsyToken())
+                            {
+                                throw new EtsyListItException(
+                                    "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
+                            }
+
+                            var listing = PopulateGraphicListing(watermark, zipFile, listItArgs);
+                            listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
+
+                            #endregion
+
+                            Console.Write($"Listing created. New listing ID: {listing.ID}");
+                            File.Delete(baseFile);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Add listing to Etsy feature turned OFF.  Use command line arg -add true to turn on.");
                         }
 
-                        var listing = PopulateGraphicListing(watermark, zipFile, listItArgs);
-                        listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
-
-                        #endregion
-
-                        Console.Write($"Listing created. New listing ID: {listing.ID} Press any key to end.");
+                        Console.Write("Press any key to end.");
+                        Console.ReadLine();
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        Console.WriteLine(ex.Message);
                         Directory.Delete(outputDirectory, true);
                         throw;
                     }
@@ -105,7 +127,7 @@ namespace EtsyListIt
             catch (Exception ex)
 
             {
-                Console.WriteLine(ex);
+                Console.WriteLine(ex.Message);
                 Console.Write("Type any key to quit.");
                 Console.ReadLine();
 
@@ -117,9 +139,11 @@ namespace EtsyListIt
         {
             _illustratorActionWrapper.ExportFileAsJPEG(baseFile, outputDirectory);
             _illustratorActionWrapper.ExportFileAsPNG(baseFile, outputDirectory);
-            _illustratorActionWrapper.ExportFileAsDXF(baseFile, outputDirectory);
+            _illustratorActionWrapper.ExportFileAsDXF(baseFile, outputDirectory, ".dxf");
             _illustratorActionWrapper.SaveFileAsEPS(baseFile, outputDirectory);
             _illustratorActionWrapper.SaveFileAsPDF(baseFile, outputDirectory);
+            // save the dxf as a .studio 3 file.
+            _illustratorActionWrapper.ExportFileAsDXF(baseFile, outputDirectory, ".studio3");
         }
 
 

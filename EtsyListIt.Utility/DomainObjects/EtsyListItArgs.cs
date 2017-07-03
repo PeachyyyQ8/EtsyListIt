@@ -13,5 +13,6 @@
         public string ListingQuantity { get; set; }
         public string ListingPrice { get; set; }
         public string ListingTags { get; set; }
+        public string AddToEtsy { get; set; }
     }
 }

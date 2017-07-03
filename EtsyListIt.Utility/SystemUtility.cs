@@ -29,7 +29,7 @@ namespace EtsyListIt.Utility
             foreach (var file in Directory.GetFiles(outputDirectory))
             {
              
-                if (!ignoredContent.IsNullOrEmpty()) continue;
+                if (ignoredContent.IsNullOrEmpty()) continue;
                 // ReSharper disable once AssignNullToNotNullAttribute
                 var ignoreFile = ignoredContent.Any(ignored => file.Contains(ignored));
                 if (ignoreFile)
