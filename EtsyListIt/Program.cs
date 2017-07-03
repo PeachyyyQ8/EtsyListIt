@@ -157,7 +157,7 @@ namespace EtsyListIt
             var listing = new Listing
             {
                 Title = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}",
-                Description = $"{listItArgs.ListingCustomTitle}\r\n{listItArgs.ListingDefaultDescription}",
+                Description = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}\r\n{listItArgs.ListingDefaultDescription}",
                 Quantity = listItArgs.ListingQuantity,
                 Price = decimal.TryParse(listItArgs.ListingPrice, out decimal price)
                     ? price
