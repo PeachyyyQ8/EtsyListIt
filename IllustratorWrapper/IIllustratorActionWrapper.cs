@@ -12,5 +12,7 @@
         void FitArtboardToCurrentDocument(dynamic document);
         dynamic GroupItems(dynamic document);
         void UngroupItems(dynamic groupItems);
+        void ExportAll(string baseFile, string tempDirectoryPath);
+        bool FileHasMultipleArtboards(string baseFile);
     }
 }

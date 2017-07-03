@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -50,46 +49,53 @@ namespace EtsyListIt
                 {
                     throw new EtsyListItException("Working directory can not be empty.");
                 }
-                var baseFiles = Directory.GetFiles(listItArgs.WorkingDirectory).Where(x => x.Contains(".svg")).ToList();
+
+                if (listItArgs.OutputDirectory.IsNullOrEmpty())
+                {
+                    throw new EtsyListItException("Output directory can not be empty.");
+                }
+
+                var baseFiles = Directory.GetFiles(listItArgs.WorkingDirectory).Where(x => x.Contains(".ai")).ToList();
+
                 if (!baseFiles.Any())
                 {
                     throw new EtsyListItException("There are no files to list!");
                 }
+                
                 foreach (var baseFile in baseFiles)
                 {
-                    if(listItArgs.OutputDirectory.IsNullOrEmpty())
-                    {
-                        throw new EtsyListItException("Output directory can not be empty.");
-                    }
-                    var outputDirectory = Path.Combine(listItArgs.OutputDirectory,
-                        Path.GetFileNameWithoutExtension(baseFile));
-
+                    var tempDirectoryPath = Path.Combine(listItArgs.WorkingDirectory, Path.GetFileName(baseFile));
+                    Directory.CreateDirectory(tempDirectoryPath);
+                    
                     try
                     {
-                        #region Illustrator File Creation & Export
-
-                        if (Directory.Exists(outputDirectory))
+                        if (_illustratorActionWrapper.FileHasMultipleArtboards(baseFile))
                         {
-                            Directory.Delete(outputDirectory, true);
+                            _illustratorActionWrapper.ExportMultipleArtboards(baseFile);
+                        }
+                        else
+                        {
+                            _illustratorActionWrapper.ExportAll(baseFile, tempDirectoryPath);
                         }
 
-                        Directory.CreateDirectory(outputDirectory);
-                        ExportFiles(baseFile, outputDirectory);
-                        #endregion
-                        
-                        File.Copy(baseFile, Path.Combine(outputDirectory, Path.GetFileName(baseFile)));
-                        var zipFile = _systemUtility.CreateZipFileFromDirectory(baseFile, outputDirectory);
-                        var ignoredContent = new List<string> {".zip"};
-                        _systemUtility.DeleteFilesInDirectory(outputDirectory, ignoredContent);
-                        var watermark =
-                            _illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile,
-                                outputDirectory);
+                        if (GetDirectorySize(tempDirectoryPath) > 0)
+                        {
+                            Console.WriteLine(;
+                        }
+                        var zipFile = _systemUtility.CreateZipFileFromDirectory(baseFile, tempDirectoryPath);
+                        var watermark = _illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile, tempDirectoryPath);
 
-                        var addToEtsy = false;
                         var success = bool.TryParse(listItArgs.AddToEtsy, out addToEtsy);
 
                         if (success && addToEtsy)
                         {
+                            Console.Write("Enter custom title: ");
+                            var customTitle = Console.ReadLine();
+                            Console.Write("Enter price: ");
+                            var price = Console.ReadLine();
+                            Console.Write("Enter tags: ");
+                            var tags = Console.ReadLine();
+
                             #region Begin Etsy Export
 
                             var authToken = GetAuthToken(listItArgs);
@@ -100,12 +106,14 @@ namespace EtsyListIt
                                     "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
                             }
 
-                            var listing = PopulateGraphicListing(watermark, zipFile, listItArgs);
+                            var listing = PopulateGraphicListing(watermark, zipFile, listItArgs, customTitle, price, tags);
                             listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
 
                             #endregion
 
                             Console.Write($"Listing created. New listing ID: {listing.ID}");
+                            Directory.Delete(tempDirectoryPath);
+                            File.Copy(baseFile, Path.Combine(listItArgs.OutputDirectory, Path.GetFileName(baseFile)));
                             File.Delete(baseFile);
                         }
                         else
@@ -119,7 +127,7 @@ namespace EtsyListIt
                     catch (Exception ex)
                     {
                         Console.WriteLine(ex.Message);
-                        Directory.Delete(outputDirectory, true);
+                        Directory.Delete(tempDirectoryPath, true);
                         throw;
                     }
                 }
@@ -134,6 +142,17 @@ namespace EtsyListIt
             }
         }
 
+        public static long GetDirectorySize(string directory)
+        {
+            long size = 0;
+            // Add file sizes.
+            FileInfo[] fis = d.GetFiles();
+            foreach (FileInfo fi in fis)
+            {
+                size += fi.Length;
+            }
+            return size;
+        }
 
         private static void ExportFiles(string baseFile, string outputDirectory)
         {
@@ -142,12 +161,13 @@ namespace EtsyListIt
             _illustratorActionWrapper.ExportFileAsDXF(baseFile, outputDirectory, ".dxf");
             _illustratorActionWrapper.SaveFileAsEPS(baseFile, outputDirectory);
             _illustratorActionWrapper.SaveFileAsPDF(baseFile, outputDirectory);
+            // save as svg
             // save the dxf as a .studio 3 file.
             _illustratorActionWrapper.ExportFileAsDXF(baseFile, outputDirectory, ".studio3");
         }
 
 
-        private static Listing PopulateGraphicListing(string watermarkPath, string digitalFilePath, EtsyListItArgs listItArgs)
+        private static Listing PopulateGraphicListing(string watermarkPath, string digitalFilePath, EtsyListItArgs listItArgs, string customTitle, string price, string tags)
         {
             if (listItArgs.ListingCustomTitle.IsNullOrEmpty())
             {
@@ -159,8 +179,8 @@ namespace EtsyListIt
                 Title = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}",
                 Description = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}\r\n{listItArgs.ListingDefaultDescription}",
                 Quantity = listItArgs.ListingQuantity,
-                Price = decimal.TryParse(listItArgs.ListingPrice, out decimal price)
-                    ? price
+                Price = decimal.TryParse(listItArgs.ListingPrice, out decimal priceValue)
+                    ? priceValue
                     : throw new InvalidDataException("Price must be a decimal value."),
                 IsSupply = true,
                 CategoryID = "69150433",
