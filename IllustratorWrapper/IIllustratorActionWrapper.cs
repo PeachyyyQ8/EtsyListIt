@@ -1,4 +1,6 @@
-﻿namespace IllustratorWrapper
+﻿using System.Collections.Generic;
+
+namespace IllustratorWrapper
 {
     public interface IIllustratorActionWrapper
     {
@@ -14,5 +16,7 @@
         void UngroupItems(dynamic groupItems);
         void ExportAll(string baseFile, string tempDirectoryPath);
         bool FileHasMultipleArtboards(string baseFile);
+        void ExportMultipleArtboards(string baseFile);
+        IEnumerable<string> SaveMultipleFilesWithWatermark(string watermarkFile, string baseFile, string tempDirectoryPath);
     }
 }

@@ -225,6 +225,21 @@ namespace IllustratorWrapper
             }
         }
 
+        public void ExportAll(string baseFile, string tempDirectoryPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool FileHasMultipleArtboards(string baseFile)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ExportMultipleArtboards(string baseFile)
+        {
+            throw new NotImplementedException();
+        }
+
         public dynamic GroupItems(dynamic document)
         {
             document.SelectObjectsOnActiveArtboard();

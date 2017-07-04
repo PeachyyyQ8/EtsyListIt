@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -44,7 +45,8 @@ namespace EtsyListIt
                 #endregion
 
                 var listItArgs = commandLineUtility.ParseCommandLineArguments(args);
-                
+
+                #region File System Exception Handling
                 if (listItArgs.WorkingDirectory.IsNullOrEmpty())
                 {
                     throw new EtsyListItException("Working directory can not be empty.");
@@ -61,29 +63,63 @@ namespace EtsyListIt
                 {
                     throw new EtsyListItException("There are no files to list!");
                 }
-                
+                #endregion
+
                 foreach (var baseFile in baseFiles)
                 {
-                    var tempDirectoryPath = Path.Combine(listItArgs.WorkingDirectory, Path.GetFileName(baseFile));
+                    var tempDirectoryPath = Path.Combine(listItArgs.WorkingDirectory, Path.GetFileNameWithoutExtension(baseFile));
                     Directory.CreateDirectory(tempDirectoryPath);
-                    
                     try
                     {
-                        if (_illustratorActionWrapper.FileHasMultipleArtboards(baseFile))
+                        var hasMultipleArtboards = true;
+                        //if (_illustratorActionWrapper.FileHasMultipleArtboards(baseFile))
+                        //{
+                        //    _illustratorActionWrapper.ExportMultipleArtboards(baseFile);
+                        //}
+                        //else
+                        //{
+                        //    _illustratorActionWrapper.ExportAll(baseFile, tempDirectoryPath);
+                        //}
+
+                        if (GetDirectorySize(tempDirectoryPath) > 20000000) /// ZIP FILES CAN'T BE MORE THAN 20MB
                         {
-                            _illustratorActionWrapper.ExportMultipleArtboards(baseFile);
+                            GroupFilesByType(tempDirectoryPath);
+                        }
+
+                        var watermarks = new List<string>();
+                        var zipFiles = new List<string>();
+                        var subDirectories = Directory.GetDirectories(tempDirectoryPath);
+                        if (subDirectories.Length > 0)
+                        {
+                            if (subDirectories.Length < 5)
+                            {
+                                CombineSmallestDirectories(tempDirectoryPath);
+                            }
+                            zipFiles.AddRange(Directory.GetDirectories(tempDirectoryPath).Select(subDirectory => _systemUtility.CreateZipFileFromDirectory(baseFile, tempDirectoryPath)));
+
+
+                            foreach (var zip in zipFiles)
+                            {
+                                var fileInfo = new FileInfo(zip);
+                                if (fileInfo.Length > 20000000)
+                                {
+                                    throw new EtsyListItException("Unable to list files.  File size too large.");
+                                }
+                            }
                         }
                         else
                         {
-                            _illustratorActionWrapper.ExportAll(baseFile, tempDirectoryPath);
+                            zipFiles.Add(_systemUtility.CreateZipFileFromDirectory(baseFile, tempDirectoryPath));
                         }
 
-                        if (GetDirectorySize(tempDirectoryPath) > 0)
+                        if (hasMultipleArtboards)
                         {
-                            Console.WriteLine(;
+                            zipFiles.AddRange(_illustratorActionWrapper.SaveMultipleFilesWithWatermark(listItArgs.WatermarkFile, baseFile, tempDirectoryPath));
                         }
-                        var zipFile = _systemUtility.CreateZipFileFromDirectory(baseFile, tempDirectoryPath);
-                        var watermark = _illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile, tempDirectoryPath);
+                        else
+                        {
+                            watermarks.Add(_illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile, baseFile, tempDirectoryPath));
+                        }
 
                         var success = bool.TryParse(listItArgs.AddToEtsy, out addToEtsy);
 
@@ -106,7 +142,7 @@ namespace EtsyListIt
                                     "Invalid AuthToken.  Please use the correct Verifier key obtained from Etsy to generate your permanent token credentials.");
                             }
 
-                            var listing = PopulateGraphicListing(watermark, zipFile, listItArgs, customTitle, price, tags);
+                            var listing = PopulateGraphicListing(watermarks, zipFiles, listItArgs, customTitle, price, tags);
                             listing = _listingWrapper.CreateDigitalListingWithImage(listing, authToken);
 
                             #endregion
@@ -142,11 +178,51 @@ namespace EtsyListIt
             }
         }
 
+        private static void CombineSmallestDirectories(string tempDirectoryPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static void GroupFilesByType(string tempDirectoryPath)
+        {
+            var files = Directory.GetFiles(tempDirectoryPath);
+            var extensions = new List<string>();
+            foreach (var file in files)
+            {
+                // Find all distinct extensions
+                var ex = file.Substring(file.IndexOf("."));
+                if (!extensions.Contains(ex))
+                {
+                    extensions.Add(ex);
+                }
+            }
+
+            foreach (var ex in extensions)
+            {
+                var subDirectory = Path.Combine(tempDirectoryPath, ex.Substring(1));
+
+                //Create subdirectories for extensions
+                Directory.CreateDirectory(subDirectory);
+                
+                //Get all files with the extension
+                var subfiles = Directory.GetFiles(tempDirectoryPath).Where(x => x.Contains(ex));
+
+                //now move files to subdirectory
+                foreach (var file in subfiles)
+                {
+                    File.Move(file, subDirectory);
+                }
+            }
+
+
+        }
+
         public static long GetDirectorySize(string directory)
         {
+            var directoryInfo = new DirectoryInfo(directory);
             long size = 0;
             // Add file sizes.
-            FileInfo[] fis = d.GetFiles();
+            FileInfo[] fis = directoryInfo.GetFiles();
             foreach (FileInfo fi in fis)
             {
                 size += fi.Length;
@@ -167,7 +243,8 @@ namespace EtsyListIt
         }
 
 
-        private static Listing PopulateGraphicListing(string watermarkPath, string digitalFilePath, EtsyListItArgs listItArgs, string customTitle, string price, string tags)
+        private static Listing PopulateGraphicListing(List<string> watermarkFiles, List<string> digitalFilePaths,
+            EtsyListItArgs listItArgs, string customTitle, string price, string tags)
         {
             if (listItArgs.ListingCustomTitle.IsNullOrEmpty())
             {
@@ -177,7 +254,8 @@ namespace EtsyListIt
             var listing = new Listing
             {
                 Title = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}",
-                Description = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}\r\n{listItArgs.ListingDefaultDescription}",
+                Description =
+                    $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}\r\n{listItArgs.ListingDefaultDescription}",
                 Quantity = listItArgs.ListingQuantity,
                 Price = decimal.TryParse(listItArgs.ListingPrice, out decimal priceValue)
                     ? priceValue
@@ -189,27 +267,42 @@ namespace EtsyListIt
                 IsCustomizable = true,
                 IsDigital = true,
                 ShippingTemplateID = "30116314577",
-                Images = new[]
-                {
-                    new ListingImage
-                    {
-                        ImagePath = File.Exists(watermarkPath) ? watermarkPath : throw new InvalidDataException("Watermark path is invalid."),
-                        Overwrite = true,
-                        IsWatermarked = true,
-                        Rank = 1
-                    }
-                },
-                DigitalFiles = new[]
-                {
-                    new DigitalFile
-                    {
-                        Path = File.Exists(digitalFilePath) ? digitalFilePath: throw new InvalidDataException("Digital file path is invalid."),
-                        Name = Path.GetFileName(digitalFilePath),
-                        Rank = 1
-                    }
-                },
                 Tags = listItArgs.ListingTags.Split(',')
             };
+
+            listing.Images = new ListingImage[5];
+
+            var count = 0;
+            foreach (var watermarkPath in watermarkFiles)
+            {
+                listing.Images[count] = new ListingImage
+                {
+                    ImagePath = File.Exists(watermarkPath)
+                        ? watermarkPath
+                        : throw new InvalidDataException("Watermark path is invalid."),
+                    Overwrite = true,
+                    IsWatermarked = true,
+                    Rank = count
+                };
+
+            }
+
+            listing.DigitalFiles = new DigitalFile[5];
+            count = 0;
+            foreach (var digitalFilePath in digitalFilePaths)
+            {
+                listing.DigitalFiles[count] = new DigitalFile
+                {
+                    Path = File.Exists(digitalFilePath)
+                        ? digitalFilePath
+                        : throw new InvalidDataException("Digital file path is invalid."),
+                    Name = Path.GetFileName(digitalFilePath),
+                    Rank = count
+                };
+
+                count++;
+            }
+
 
             return listing;
         }
