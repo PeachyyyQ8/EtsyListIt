@@ -20,7 +20,7 @@ namespace IllustratorWrapper
             ExportFileAsJPEG(document, fullFileName);
         }
 
-        private void ExportFileAsJPEG(Document document, string fullFileName)
+        private void ExportFileAsJPEG(dynamic document, string fullFileName)
         {
             FitArtboardToCurrentDocument(document);
             //CenterItemsOnArtboard(document);
@@ -39,7 +39,7 @@ namespace IllustratorWrapper
             ExportFileAsDXF(document, extension, fullFileName);
         }
 
-        private void ExportFileAsDXF(Document document, string extension, string newFileName)
+        private void ExportFileAsDXF(dynamic document, string extension, string newFileName)
         {
             FitArtboardToCurrentDocument(document);
             //CenterItemsOnArtboard(document);
@@ -57,7 +57,7 @@ namespace IllustratorWrapper
             dynamic document = _application.Open(baseFile);
             SaveFileAsEPS(document, fullFileName);
         }
-        private void SaveFileAsEPS(Document document, string newFileName)
+        private void SaveFileAsEPS(dynamic document, string newFileName)
         {
             FitArtboardToCurrentDocument(document);
             //CenterItemsOnArtboard(document);
@@ -73,14 +73,14 @@ namespace IllustratorWrapper
             
         }
 
-        private void SaveFileAsPDF(Document document, string newFileName)
+        private void SaveFileAsPDF(dynamic document, string newFileName)
         {
             FitArtboardToCurrentDocument(document);
             document.SaveAs(newFileName, new PDFSaveOptions());
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
 
-        private string SaveFileWithWatermark(string watermarkFile, Document sourceDocument, string fullFileName)
+        private string SaveFileWithWatermark(string watermarkFile, dynamic sourceDocument, string fullFileName)
         {
             FitArtboardToCurrentDocument(sourceDocument);
 
@@ -182,7 +182,7 @@ namespace IllustratorWrapper
             ExportFileAsPNG(document, fullFileName);
         }
 
-        private void ExportFileAsPNG(Document document, string newFileName)
+        private void ExportFileAsPNG(dynamic document, string newFileName)
         {
             FitArtboardToCurrentDocument(document);
             //CenterItemsOnArtboard(document);
@@ -248,7 +248,7 @@ namespace IllustratorWrapper
 
         public void ExportAll(string baseFile, string tempDirectoryPath, string newFileName = null)
         {
-            Document document = _application.Open(baseFile);
+            dynamic document = _application.Open(baseFile);
             ExportAll(document, tempDirectoryPath, newFileName);
         }
 
@@ -260,7 +260,7 @@ namespace IllustratorWrapper
             ExportFileAsSVG(baseFile, fullFileName);
         }
 
-        private void ExportFileAsSVG(Document document, string newFileName)
+        private void ExportFileAsSVG(dynamic document, string newFileName)
         {
             
             FitArtboardToCurrentDocument(document);
@@ -270,8 +270,7 @@ namespace IllustratorWrapper
 
         public void ExportMultipleArtboards(string baseFile, string tempDirectoryPath)
         {
-            Application app = new ApplicationClass();
-            Document oldDoc = _application.Open(baseFile);
+            dynamic oldDoc = _application.Open(baseFile);
             for (int count = 0; count > oldDoc.Artboards.Count; count++)
             {
                 oldDoc.Artboards.SetActiveArtboardIndex(count);
@@ -279,7 +278,7 @@ namespace IllustratorWrapper
                 oldDoc.SelectObjectsOnActiveArtboard();
                 oldDoc.Copy();
 
-                Document newDoc = app.Documents.Add();
+                dynamic newDoc = _application.Documents.Add();
                 newDoc.Paste();
 
                 newDoc.SelectObjectsOnActiveArtboard();
@@ -292,7 +291,7 @@ namespace IllustratorWrapper
             }
         }
 
-        private void ExportAll(Document document, string tempDirectoryPath, string newFileName = null)
+        private void ExportAll(dynamic document, string tempDirectoryPath, string newFileName = null)
         {
             ExportFileAsJPEG(document, newFileName);
             ExportFileAsPNG(document, newFileName);
@@ -315,14 +314,13 @@ namespace IllustratorWrapper
         public string CreateWatermarkForArtboard(string baseFile, string tempDirectoryPath, string watermarkPath,
             int artboardIndex)
         {
-            Application app = new ApplicationClass();
-            Document oldDoc = _application.Open(baseFile);
+            dynamic oldDoc = _application.Open(baseFile);
             oldDoc.Artboards.SetActiveArtboardIndex(artboardIndex);
             var artboardName = oldDoc.Artboards[artboardIndex].Name;
             oldDoc.SelectObjectsOnActiveArtboard();
             oldDoc.Copy();
 
-            Document newDoc = app.Documents.Add();
+            dynamic newDoc = _application.Documents.Add();
             newDoc.Paste();
             var fullFileName = Path.Combine(tempDirectoryPath + artboardName + ".jpg");
             SaveFileWithWatermark(watermarkPath, newDoc, fullFileName);
