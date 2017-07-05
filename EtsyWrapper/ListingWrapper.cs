@@ -69,7 +69,7 @@ namespace EtsyWrapper
             }
         }
 
-        public Listing CreateDigitalListingWithImage(Listing listing, PermanentToken authToken)
+        public Listing CreateDigitalListingWithImages(Listing listing, PermanentToken authToken)
         {
             listing = CreateListingWithImage(listing, authToken);
             AddDigitalFileToListing(listing, authToken);
