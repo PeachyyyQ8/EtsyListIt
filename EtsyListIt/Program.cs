@@ -70,7 +70,9 @@ namespace EtsyListIt
 
                         if (artboardCount > 1)
                         {
-                            HandleMultipleArtboards(tempDirectoryPath, baseFile, artboardCount, listItArgs.WatermarkFile, out zipFiles, out watermarks);
+                            zipFiles = ExportMultipleArtboards(tempDirectoryPath, baseFile);
+                            watermarks = WatermarkMultipleArtboards(artboardCount, baseFile, tempDirectoryPath,
+                                listItArgs.WatermarkFile);
                         }
                         else
                         {
@@ -81,8 +83,8 @@ namespace EtsyListIt
                         bool.TryParse(listItArgs.AddToEtsy, out bool addToEtsy);
 
                         #region Etsy Export
-                        if (addToEtsy)
-                        {
+                        //if (addToEtsy)
+                        //{
                             Console.Write("Enter custom title: ");
                             var customTitle = Console.ReadLine();
                             Console.Write("Enter price: ");
@@ -101,14 +103,14 @@ namespace EtsyListIt
                             var listing = PopulateGraphicListing(watermarks, zipFiles, listItArgs, customTitle, price, tags);
                             listing = _listingWrapper.CreateDigitalListingWithImages(listing, authToken);
                             
-                            Console.Write($"Listing created. New listing ID: {listing.ID}");
-                            Directory.Delete(tempDirectoryPath);
+                            Console.WriteLine($"Listing created. New listing ID: {listing.ID}");
+                            Directory.Delete(tempDirectoryPath, true);
                             File.Move(baseFile, Path.Combine(listItArgs.OutputDirectory, Path.GetFileName(baseFile)));
-                        }
-                        else
-                        {
-                            Console.WriteLine("Add listing to Etsy feature turned OFF.  Use command line arg -add true to turn on.");
-                        }
+                        //}
+                        //else
+                        //{
+                        //    Console.WriteLine("Add listing to Etsy feature turned OFF.  Use command line arg -add true to turn on.");
+                        //}
                         #endregion
 
                         Console.Write("Press any key to end.");
@@ -132,17 +134,37 @@ namespace EtsyListIt
             }
         }
 
-        private static void HandleMultipleArtboards(string tempDirectoryPath, string baseFile, int artboardCount, string watermarkPath,
-            out List<string> zipFiles, out List<string> watermarks)
+        private static List<string> WatermarkMultipleArtboards(int artboardCount, string baseFile, string tempDirectoryPath, string watermarkPath)
         {
-            _illustratorActionWrapper.ExportMultipleArtboards(baseFile, tempDirectoryPath);
+            var watermarks = new List<string>();
+            if (artboardCount > 5)
+            {
+                Console.WriteLine("Too many artboards to watermark correctly.  Please check your watermarks.");
+            }
+
+            artboardCount = artboardCount > 5 ? 5 : artboardCount;
+
+            for (int i = 1; i <= artboardCount; i++)
+            {
+                var watermark = _illustratorActionWrapper.CreateWatermarkForArtboard(baseFile, tempDirectoryPath, watermarkPath, i);
+                watermarks.Add(watermark);
+            }
+
+            return watermarks;
+        }
+
+        private static List<string> ExportMultipleArtboards(string tempDirectoryPath, string baseFile)
+        {
+            var zipFiles = new List<string>();
+
+            //_illustratorActionWrapper.ExportMultipleArtboards(baseFile, tempDirectoryPath);
             zipFiles = new List<string>();
-            watermarks = new List<string>();
+
 
             if (GetDirectorySize(tempDirectoryPath) <= 20000000) // ZIP FILES CAN'T BE MORE THAN 20MB
             {
                 zipFiles.Add(_systemUtility.CreateZipFileFromDirectory(baseFile, tempDirectoryPath));
-                return;
+                return zipFiles;
             }
 
             GroupFilesByType(tempDirectoryPath);
@@ -153,7 +175,7 @@ namespace EtsyListIt
             {
                 throw new EtsyListItException("An error has occurred in creating subdirectories for images.");
             }
-            if (subDirectories.Length < 5)
+            if (subDirectories.Length > 5)
             {
                 CombineSmallestDirectories(tempDirectoryPath);
             }
@@ -173,19 +195,7 @@ namespace EtsyListIt
                 }
             }
 
-            if (artboardCount > 5)
-            {
-                Console.WriteLine("Too many artboards to watermark correctly.  Please check your watermarks.");
-            }
-
-            artboardCount = artboardCount > 5 ? 5 : artboardCount;
-
-            for (int i = 0; i > artboardCount; i++)
-            {
-                var watermark = _illustratorActionWrapper.CreateWatermarkForArtboard(baseFile, tempDirectoryPath, watermarkPath, i);
-                watermarks.Add(watermark);
-            }
-
+            return zipFiles;
         }
 
         private static void CombineSmallestDirectories(string tempDirectoryPath)
@@ -194,12 +204,14 @@ namespace EtsyListIt
                                  select new {name = d, size = GetDirectorySize(d)}).ToList();
             orderedBySize = orderedBySize.OrderBy(x => x.size).ToList();
 
-            while (orderedBySize.Count() < 5)
+            while (orderedBySize.Count() > 5)
             {
-                var first = orderedBySize[0].name.Substring(orderedBySize[0].name.LastIndexOf(@"\"));
-                var second = orderedBySize[1].name.Substring(orderedBySize[1].name.LastIndexOf(@"\"));
+                var first = orderedBySize[0].name.Substring(orderedBySize[0].name.LastIndexOf(@"\") + 1);
+                var second = orderedBySize[1].name.Substring(orderedBySize[1].name.LastIndexOf(@"\") + 1);
                 var newDirectory = Path.Combine(tempDirectoryPath, first + second);
                 Directory.CreateDirectory(newDirectory);
+                
+                
                 foreach (var file in Directory.GetFiles(orderedBySize[0].name))
                 {
                     File.Move(file, Path.Combine(newDirectory, Path.GetFileName(file)));
@@ -209,8 +221,11 @@ namespace EtsyListIt
                     File.Move(file, Path.Combine(newDirectory, Path.GetFileName(file)));
                 }
 
-                Directory.Delete(orderedBySize[0].name, true);
-                Directory.Delete(orderedBySize[1].name, true);
+                Directory.Delete(Path.Combine(tempDirectoryPath, first), true);
+                Directory.Delete(Path.Combine(tempDirectoryPath, second), true);
+
+                orderedBySize.RemoveAll(x => x.name == Path.Combine(tempDirectoryPath, first) || x.name == Path.Combine(tempDirectoryPath, second));
+                orderedBySize.Add(new { name = newDirectory, size = GetDirectorySize(newDirectory) });
             }
         }
 
@@ -241,7 +256,7 @@ namespace EtsyListIt
                 //now move files to subdirectory
                 foreach (var file in subfiles)
                 {
-                    File.Move(file, subDirectory);
+                    File.Move(file, Path.Combine(subDirectory, Path.GetFileName(file)));
                 }
             }
 
@@ -264,18 +279,18 @@ namespace EtsyListIt
         private static Listing PopulateGraphicListing(List<string> watermarkFiles, List<string> digitalFilePaths,
             EtsyListItArgs listItArgs, string customTitle, string price, string tags)
         {
-            if (listItArgs.ListingCustomTitle.IsNullOrEmpty())
+            if (customTitle.IsNullOrEmpty())
             {
                 throw new EtsyListItException(
                     "User must provide custom title for listing.  Use command line arg -ct to specify.");
             }
             var listing = new Listing
             {
-                Title = $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}",
+                Title = $"{customTitle} {listItArgs.ListingDefaultTitle}",
                 Description =
-                    $"{listItArgs.ListingCustomTitle} {listItArgs.ListingDefaultTitle}\r\n{listItArgs.ListingDefaultDescription}",
+                    $"{customTitle} {listItArgs.ListingDefaultTitle}\r\n{listItArgs.ListingDefaultDescription}",
                 Quantity = listItArgs.ListingQuantity,
-                Price = decimal.TryParse(listItArgs.ListingPrice, out decimal priceValue)
+                Price = decimal.TryParse(price, out decimal priceValue)
                     ? priceValue
                     : throw new InvalidDataException("Price must be a decimal value."),
                 IsSupply = true,
@@ -285,7 +300,7 @@ namespace EtsyListIt
                 IsCustomizable = true,
                 IsDigital = true,
                 ShippingTemplateID = "30116314577",
-                Tags = listItArgs.ListingTags.Split(',')
+                Tags = tags.Split(',')
             };
 
             listing.Images = new ListingImage[5];
@@ -302,6 +317,7 @@ namespace EtsyListIt
                     IsWatermarked = true,
                     Rank = count
                 };
+                count++;
 
             }
 

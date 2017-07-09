@@ -16,8 +16,6 @@ namespace EtsyListIt.Utility
         }
         public EtsyListItArgs ParseCommandLineArguments(string[] args)
         {
-            var addToEtsy = string.Empty;
-
             _commandLineArgs = new EtsyListItArgs();
             var p = new OptionSet()
             {
@@ -46,11 +44,6 @@ namespace EtsyListIt.Utility
                     v => _commandLineArgs.ListingDefaultTitle = v
                 },
                 {
-                    "ct|Custom Title=",
-                    "Sets the custom title for the listing. This is added to the standard title.",
-                    v => _commandLineArgs.ListingCustomTitle = v
-                },
-                {
                     "dd|Default Description=",
                     "Sets or changes the default description for the listing.",
                     v => _commandLineArgs.ListingDefaultDescription = v
@@ -59,17 +52,6 @@ namespace EtsyListIt.Utility
                     "lq|Listing Quantity=",
                     "Sets or changes the quantity for the listing.",
                     v => _commandLineArgs.ListingQuantity = v
-                },
-                {
-                    "lp|Listing Price=",
-                    "Sets the price for the listing.",
-                    v => _commandLineArgs.ListingPrice = v
-                },
-                {
-                    "tags|Listing ListingTags=" +
-                    "",
-                    "Sets the price for the listing.",
-                    v => _commandLineArgs.ListingTags = v
                 },
                 {
                 "wm|Watermark File=" +
@@ -101,11 +83,8 @@ namespace EtsyListIt.Utility
                     GetValueAndStore("ListingDefaultTitle", _commandLineArgs.ListingDefaultTitle, "-dt");
                 _commandLineArgs.ListingDefaultDescription =
                     GetValueAndStore("ListingDefaultDescription", _commandLineArgs.ListingDefaultDescription, "-dd");
-                _commandLineArgs.ListingCustomTitle = GetValue("ListingCustomTitle", _commandLineArgs.ListingCustomTitle, "-ct");
                 _commandLineArgs.ListingQuantity = GetValueAndStore("ListingQuantity",
                     _commandLineArgs.ListingQuantity, "-lq");
-                _commandLineArgs.ListingPrice = GetValue("Listing Price", _commandLineArgs.ListingPrice, "-lp");
-                _commandLineArgs.ListingTags = GetValue("Tags", _commandLineArgs.ListingTags, "-tags");
                 _commandLineArgs.WatermarkFile = GetValueAndStore("WatermarkFile",
                     _commandLineArgs.WatermarkFile, "-wm");
                 _commandLineArgs.AddToEtsy = GetValueAndStore("AddToEtsy", _commandLineArgs.AddToEtsy, "-add");
@@ -116,17 +95,6 @@ namespace EtsyListIt.Utility
                 throw new EtsyListItException("Unable to parse commandLine args.  OptionsException: {0}".QuickFormat(e.Message));
             }
             return _commandLineArgs;
-        }
-
-        private string GetValue(string key, string value, string argName)
-        {
-            if (_commandLineArgs.ListingCustomTitle.IsNullOrEmpty())
-            {
-                throw new EtsyListItException(
-                    $"User must specify {key.SplitAtCapitalLetter().ToLower()}!  Use command line argument {argName} value to specify.");
-            }
-
-            return value;
         }
 
         private string GetValueAndStore(string key, string value, string argName)
