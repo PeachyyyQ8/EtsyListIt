@@ -76,6 +76,10 @@ namespace EtsyListIt
                         }
                         else
                         {
+                            _illustratorActionWrapper.ExportAll(baseFile, tempDirectoryPath);
+                            watermarks.Add(_illustratorActionWrapper.SaveFileWithWatermark(listItArgs.WatermarkFile,
+                                baseFile,
+                                listItArgs.WorkingDirectory));
                             zipFiles.Add(_systemUtility.CreateZipFileFromDirectory(baseFile, tempDirectoryPath));
                         }
 
@@ -83,8 +87,8 @@ namespace EtsyListIt
                         bool.TryParse(listItArgs.AddToEtsy, out bool addToEtsy);
 
                         #region Etsy Export
-                        //if (addToEtsy)
-                        //{
+                        if (addToEtsy)
+                        {
                             Console.Write("Enter custom title: ");
                             var customTitle = Console.ReadLine();
                             Console.Write("Enter price: ");
@@ -106,11 +110,15 @@ namespace EtsyListIt
                             Console.WriteLine($"Listing created. New listing ID: {listing.ID}");
                             Directory.Delete(tempDirectoryPath, true);
                             File.Move(baseFile, Path.Combine(listItArgs.OutputDirectory, Path.GetFileName(baseFile)));
-                        //}
-                        //else
-                        //{
-                        //    Console.WriteLine("Add listing to Etsy feature turned OFF.  Use command line arg -add true to turn on.");
-                        //}
+                            foreach (var watermark in watermarks)
+                            {
+                                File.Delete(watermark);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Add listing to Etsy feature turned OFF.  Use command line arg -add true to turn on.");
+                        }
                         #endregion
 
                         Console.Write("Press any key to end.");
@@ -157,7 +165,7 @@ namespace EtsyListIt
         {
             var zipFiles = new List<string>();
 
-            //_illustratorActionWrapper.ExportMultipleArtboards(baseFile, tempDirectoryPath);
+            _illustratorActionWrapper.ExportMultipleArtboards(baseFile, tempDirectoryPath);
             zipFiles = new List<string>();
 
 
@@ -297,6 +305,7 @@ namespace EtsyListIt
                 CategoryID = "69150433",
                 WhenMade = "2010_2017",
                 WhoMade = "i_did",
+                State = "draft",
                 IsCustomizable = true,
                 IsDigital = true,
                 ShippingTemplateID = "30116314577",

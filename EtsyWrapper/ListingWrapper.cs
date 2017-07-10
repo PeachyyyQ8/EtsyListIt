@@ -90,6 +90,10 @@ namespace EtsyWrapper
             request.Parameters.Clear();
             foreach (var image in listing.Images)
             {
+                if (image == null)
+                {
+                    continue;
+                }
                 request.AddFile("image", image.ImagePath);
                 request.AddParameter("application/json", JsonConvert.SerializeObject(listing.Images), ParameterType.RequestBody);
                 var etsyResponse = _restClient.Execute(request);
@@ -118,6 +122,10 @@ namespace EtsyWrapper
             request.Parameters.Clear();
             foreach (var file in listing.DigitalFiles)
             {
+                if (file == null)
+                {
+                    continue;
+                }
                 request.AddFile("file", file.Path);
                 request.AddParameter("name", file.Name);
                 request.AddParameter("rank", file.Rank);

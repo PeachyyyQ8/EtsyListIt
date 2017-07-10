@@ -153,7 +153,11 @@ namespace IllustratorWrapper
 
             dynamic sourceDocument = _application.Open(baseFile);
 
-            return SaveFileWithWatermark(watermarkFile, sourceDocument, fullFileName);
+            dynamic watermark = SaveFileWithWatermark(watermarkFile, sourceDocument, fullFileName);
+
+            sourceDocument.Close();
+
+            return watermark;
 
         }
 
@@ -248,6 +252,7 @@ namespace IllustratorWrapper
         public void ExportAll(string baseFile, string tempDirectoryPath, string newFileName = null)
         {
             dynamic document = _application.Open(baseFile);
+            newFileName = newFileName ?? Path.GetFileNameWithoutExtension(baseFile);
             ExportAll(document, tempDirectoryPath, newFileName);
             document.Close(AiSaveOptions.aiDoNotSaveChanges);
         }
