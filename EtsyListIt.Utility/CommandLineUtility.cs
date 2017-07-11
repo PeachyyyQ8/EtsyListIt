@@ -60,11 +60,23 @@ namespace EtsyListIt.Utility
                 v => _commandLineArgs.WatermarkFile = v
             },
                 {
-                    "add|Add To Etsy=" + 
+                    "update|Update Listing=" + 
+                    "",
+                    "Tells the application whether you want to add a listing for the graphic to Etsy.",
+                    v => _commandLineArgs.UpdateListingID = v
+                },
+                {
+                    "add|Add To Etsy=" +
                     "",
                     "Tells the application whether you want to add a listing for the graphic to Etsy.",
                     v => _commandLineArgs.AddToEtsy = v
-                }
+                },
+                {
+                "publish|Publish Listing=" +
+                "",
+                "Tells the application whether you want to publish the listing.",
+                v => _commandLineArgs.PublishListing = v
+            }
 
 
 
@@ -87,8 +99,9 @@ namespace EtsyListIt.Utility
                     _commandLineArgs.ListingQuantity, "-lq");
                 _commandLineArgs.WatermarkFile = GetValueAndStore("WatermarkFile",
                     _commandLineArgs.WatermarkFile, "-wm");
+                _commandLineArgs.PublishListing = GetValueAndStore("PublishListing",
+                    _commandLineArgs.WatermarkFile, "-publish");
                 _commandLineArgs.AddToEtsy = GetValueAndStore("AddToEtsy", _commandLineArgs.AddToEtsy, "-add");
-
             }
             catch (OptionException e)
             {

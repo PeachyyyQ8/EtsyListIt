@@ -41,5 +41,6 @@ namespace EtsyWrapper.DomainObjects
 
         public ListingImage[] Images { get; set; }
         public DigitalFile[] DigitalFiles { get; set; }
+        public bool Activate { get; set; }
     }
 }

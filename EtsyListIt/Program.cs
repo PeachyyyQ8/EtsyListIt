@@ -87,6 +87,7 @@ namespace EtsyListIt
                         bool.TryParse(listItArgs.AddToEtsy, out bool addToEtsy);
 
                         #region Etsy Export
+
                         if (addToEtsy)
                         {
                             Console.Write("Enter custom title: ");
@@ -105,8 +106,15 @@ namespace EtsyListIt
                             }
 
                             var listing = PopulateGraphicListing(watermarks, zipFiles, listItArgs, customTitle, price, tags);
-                            listing = _listingWrapper.CreateDigitalListingWithImages(listing, authToken);
                             
+                            listing = _listingWrapper.CreateDigitalListingWithImages(listing, authToken);
+                            bool.TryParse(listItArgs.PublishListing, out bool publish);
+                            if (publish)
+                            {
+                                listing.State = "active";
+                                _listingWrapper.UpdateListing(listing, authToken);
+                            }
+
                             Console.WriteLine($"Listing created. New listing ID: {listing.ID}");
                             Directory.Delete(tempDirectoryPath, true);
                             File.Move(baseFile, Path.Combine(listItArgs.OutputDirectory, Path.GetFileName(baseFile)));

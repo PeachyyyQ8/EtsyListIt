@@ -20,6 +20,7 @@ namespace EtsyWrapper
 
         public Listing CreateListing(Listing listing, PermanentToken authToken)
         {
+            listing.State = "draft";
             if (!authToken.IsValidEtsyToken())
             {
                 throw new EtsyWrapperException("Auth token is not valid!  Please authenticate before calling the CreateListing method.");
@@ -46,12 +47,7 @@ namespace EtsyWrapper
         {
             listing = CreateListing(listing, authToken);
             AddImageToListing(listing, authToken);
-            if (listing.State == "draft")
-            {
-                listing.State = "active";
-                UpdateListing(listing, authToken);
-            }
-                return listing;
+            return listing;
         }
 
         public void UpdateListing(Listing listing, PermanentToken authToken)

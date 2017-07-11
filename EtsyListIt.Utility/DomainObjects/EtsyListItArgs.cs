@@ -2,6 +2,7 @@
 {
     public class EtsyListItArgs
     {
+        public string UpdateListingID;
         public string WorkingDirectory { get; set; }
         public string OutputDirectory { get; set; }
         public string WatermarkFile { get; set; }
@@ -11,5 +12,6 @@
         public string ListingDefaultDescription { get; set; }
         public string ListingQuantity { get; set; }
         public string AddToEtsy { get; set; }
+        public string PublishListing { get; set; }
     }
 }
